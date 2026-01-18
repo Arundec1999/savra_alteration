@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Alteration Slip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#f4f4f4;
+  padding:10px;
+}
+.card{
+  max-width:480px;
+  margin:auto;
+  background:#fff;
+  padding:15px;
+  border-radius:10px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
+}
+h2,h3{
+  margin:10px 0;
+  text-align:center;
+}
+label{
+  font-size:14px;
+  font-weight:bold;
+}
+input, select{
+  width:100%;
+  padding:8px;
+  margin-bottom:10px;
+  font-size:14px;
+}
+.section{
+  border-top:1px dashed #ccc;
+  margin-top:10px;
+  padding-top:10px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+button{
+  width:100%;
+  padding:10px;
+  font-size:16px;
+  background:black;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+.print-only{ display:none; }
+
+@media print{
+  body{ background:white; }
+  .card{ box-shadow:none; max-width:100%; }
+  button{ display:none; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="card" id="printArea">
+
+<h2>ALTERATION SLIP</h2>
+
+<!-- Branch -->
+<label>Branch / शाखा</label>
+<select id="branch" onchange="setPrefix()">
+  <option value="">Select Branch</option>
+  <option value="PN">Pratap Nagar</option>
+  <option value="TR">Tonk Road</option>
+</select>
+
+<!-- Bill -->
+<label>Bill Prefix</label>
+<input type="text" id="billPrefix" readonly>
+
+<label>Bill Number *</label>
+<input type="number" id="billNo" required>
+
+<label>Alteration Slip No</label>
+<input type="text" id="altSlip" readonly>
+
+<!-- Customer -->
+<div class="section">
+<h3>Customer Details / ग्राहक विवरण</h3>
+
+<label>Mobile Number *</label>
+<input type="tel" id="mobile" onblur="fetchCustomer()">
+
+<label>Customer Name *</label>
+<input type="text" id="customer">
+</div>
+
+<!-- TOP -->
+<div class="section">
+<h3>TOP – कुर्ता</h3>
+<div class="grid">
+<input placeholder="Length">
+<input placeholder="Length (लाई)">
+<input placeholder="U Chest (ऊपरी छाती)">
+<input placeholder="Chest (छाती)">
+<input placeholder="L Chest (निचली छाती)">
+<input placeholder="Waist (कमर)">
+<input placeholder="Hip (कूल्हा)">
+<input placeholder="Sleeve">
+<input placeholder="Arm Hole (आर्म होल)">
+<input placeholder="Mori">
+<input placeholder="Bicep (बाइसेप्स)">
+<input placeholder="Elbow">
+</div>
+
+<label>Pad</label>
+<select>
+  <option>No</option>
+  <option>Yes</option>
+</select>
+</div>
+
+<!-- BOTTOM -->
+<div class="section">
+<h3>BOTTOM – पैंट</h3>
+<div class="grid">
+<input placeholder="Length">
+<input placeholder="Waist">
+<input placeholder="Hip">
+<input placeholder="Mori">
+<input placeholder="Thigh">
+<input placeholder="Knee">
+</div>
+</div>
+
+<!-- Delivery -->
+<div class="section">
+<h3>Delivery</h3>
+<label>Date</label>
+<input type="date">
+
+<label>Time</label>
+<input type="time">
+</div>
+
+<button onclick="printSlip()">SAVE & PRINT</button>
+
+</div>
+
+<script>
+function setPrefix(){
+  const b = document.getElementById("branch").value;
+  document.getElementById("billPrefix").value = b;
+  generateSlipNo(b);
+}
+
+function generateSlipNo(branch){
+  const ts = Date.now().toString().slice(-5);
+  document.getElementById("altSlip").value = "ALT-" + branch + "-" + ts;
+}
+
+function fetchCustomer(){
+  // Backend logic will come later
+  // Placeholder for auto-fill
+}
+
+function printSlip(){
+  if(!document.getElementById("billNo").value ||
+     !document.getElementById("mobile").value ||
+     !document.getElementById("customer").value){
+    alert("Please fill mandatory fields");
+    return;
+  }
+  window.print();
+}
+</script>
+
+</body>
+</html>
