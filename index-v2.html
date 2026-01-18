@@ -1,0 +1,39 @@
+<script>
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
+
+function getTableData(tableId) {
+  const rows = document.querySelectorAll(`#${tableId} tr`);
+  let data = {};
+  rows.forEach(r => {
+    const label = r.dataset.label;
+    const input = r.querySelector("input,select");
+    if (input && input.value.trim() !== "") {
+      data[label] = input.value.trim();
+    }
+  });
+  return data;
+}
+
+async function saveSlip() {
+  const payload = {
+    action: "saveSlip",
+    branch: branch.options[branch.selectedIndex].text,
+    billPrefix: billPrefix.value,
+    billNo: billNo.value,
+    mobile: mobile.value,
+    name: customer.value,
+    top: getTableData("topTable"),
+    bottom: getTableData("bottomTable"),
+    deliveryDate: deliveryDate.value,
+    deliveryTime: deliveryTime.value
+  };
+
+  const res = await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  alert("Saved. Slip No: " + data.slipNo);
+  window.print();
+}
+</script>
