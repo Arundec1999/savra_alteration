@@ -1,39 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Alteration Slip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#f4f4f4;
+  padding:10px;
+}
+.card{
+  max-width:480px;
+  margin:auto;
+  background:#fff;
+  padding:14px;
+  border-radius:10px;
+  box-shadow:0 6px 16px rgba(0,0,0,.12);
+}
+h2,h3{
+  text-align:center;
+  margin:8px 0;
+}
+label{
+  font-size:14px;
+  font-weight:bold;
+}
+input, select{
+  width:100%;
+  padding:7px;
+  margin-bottom:8px;
+  font-size:14px;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-bottom:10px;
+}
+th,td{
+  border:1px solid #ccc;
+  padding:6px;
+  font-size:13px;
+}
+th{
+  background:#eee;
+}
+button{
+  width:100%;
+  padding:10px;
+  font-size:16px;
+  background:black;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+@media print{
+  body{ background:white; }
+  button{ display:none; }
+  .card{ box-shadow:none; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="card" id="printArea">
+
+<h2>ALTERATION SLIP</h2>
+
+<!-- BRANCH -->
+<label>Branch / शाखा</label>
+<select id="branch" onchange="setPrefix()">
+  <option value="">Select Branch</option>
+  <option value="PN">Pratap Nagar</option>
+  <option value="TR">Tonk Road</option>
+</select>
+
+<label>Bill Prefix</label>
+<input type="text" id="billPrefix" readonly>
+
+<label>Bill Number *</label>
+<input type="number" id="billNo">
+
+<label>Alteration Slip No</label>
+<input type="text" id="altSlip" readonly>
+
+<hr>
+
+<!-- CUSTOMER -->
+<h3>Customer Details / ग्राहक विवरण</h3>
+
+<label>Mobile Number *</label>
+<input type="tel" id="mobile" onblur="fetchCustomer()">
+
+<label>Customer Name *</label>
+<input type="text" id="customer">
+
+<hr>
+
+<!-- TOP TABLE -->
+<h3>TOP – कुर्ता</h3>
+<table id="topTable">
+<tr><th>#</th><th>Measurement (माप)</th><th>Value</th></tr>
+<tr data-label="Length"><td>1</td><td>Length</td><td><input></td></tr>
+<tr data-label="Length (लाई)"><td>2</td><td>Length (लाई)</td><td><input></td></tr>
+<tr data-label="U Chest"><td>3</td><td>U Chest (ऊपरी छाती)</td><td><input></td></tr>
+<tr data-label="Chest"><td>4</td><td>Chest (छाती)</td><td><input></td></tr>
+<tr data-label="L Chest"><td>5</td><td>L Chest (निचली छाती)</td><td><input></td></tr>
+<tr data-label="Waist"><td>6</td><td>Waist (कमर)</td><td><input></td></tr>
+<tr data-label="Hip"><td>7</td><td>Hip (कूल्हा)</td><td><input></td></tr>
+<tr data-label="Sleeve"><td>8</td><td>Sleeve</td><td><input></td></tr>
+<tr data-label="Arm Hole"><td>9</td><td>Arm Hole (आर्म होल)</td><td><input></td></tr>
+<tr data-label="Mori"><td>10</td><td>Mori</td><td><input></td></tr>
+<tr data-label="Bicep"><td>11</td><td>Bicep (बाइसेप्स)</td><td><input></td></tr>
+<tr data-label="Elbow"><td>12</td><td>Elbow</td><td><input></td></tr>
+<tr data-label="Pad"><td>13</td><td>Pad</td>
+<td>
+<select>
+  <option value="">--</option>
+  <option>Yes</option>
+  <option>No</option>
+</select>
+</td>
+</tr>
+</table>
+
+<!-- BOTTOM TABLE -->
+<h3>BOTTOM – पैंट</h3>
+<table id="bottomTable">
+<tr><th>#</th><th>Measurement (माप)</th><th>Value</th></tr>
+<tr data-label="Length"><td>1</td><td>Length</td><td><input></td></tr>
+<tr data-label="Waist"><td>2</td><td>Waist</td><td><input></td></tr>
+<tr data-label="Hip"><td>3</td><td>Hip</td><td><input></td></tr>
+<tr data-label="Mori"><td>4</td><td>Mori</td><td><input></td></tr>
+<tr data-label="Thigh"><td>5</td><td>Thigh</td><td><input></td></tr>
+<tr data-label="Knee"><td>6</td><td>Knee</td><td><input></td></tr>
+</table>
+
+<hr>
+
+<!-- DELIVERY -->
+<h3>Delivery</h3>
+<label>Date</label>
+<input type="date" id="deliveryDate">
+
+<label>Time</label>
+<input type="time" id="deliveryTime">
+
+<button onclick="saveSlip()">SAVE & PRINT</button>
+
+</div>
+
 <script>
+/* 🔴 PASTE YOUR APPS SCRIPT URL HERE */
 const API_URL = "https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 
-function getTableData(tableId) {
-  const rows = document.querySelectorAll(`#${tableId} tr`);
-  let data = {};
-  rows.forEach(r => {
-    const label = r.dataset.label;
-    const input = r.querySelector("input,select");
-    if (input && input.value.trim() !== "") {
-      data[label] = input.value.trim();
-    }
-  });
-  return data;
+/* BRANCH PREFIX */
+function setPrefix(){
+  billPrefix.value = branch.value;
 }
 
-async function saveSlip() {
+/* FETCH CUSTOMER */
+async function fetchCustomer(){
+  if(!mobile.value) return;
+  const res = await fetch(`${API_URL}?action=getCustomer&mobile=${mobile.value}`);
+  const data = await res.json();
+  if(data.found){
+    customer.value = data.name;
+  }
+}
+
+/* READ TABLE */
+function readTable(tableId){
+  let obj = {};
+  document.querySelectorAll(`#${tableId} tr[data-label]`).forEach(r=>{
+    const key = r.dataset.label;
+    const input = r.querySelector("input,select");
+    if(input && input.value.trim() !== ""){
+      obj[key] = input.value.trim();
+    }
+  });
+  return obj;
+}
+
+/* SAVE */
+async function saveSlip(){
+  if(!billNo.value || !mobile.value || !customer.value){
+    alert("Fill mandatory fields");
+    return;
+  }
+
   const payload = {
-    action: "saveSlip",
+    action:"saveSlip",
     branch: branch.options[branch.selectedIndex].text,
     billPrefix: billPrefix.value,
     billNo: billNo.value,
     mobile: mobile.value,
     name: customer.value,
-    top: getTableData("topTable"),
-    bottom: getTableData("bottomTable"),
+    top: readTable("topTable"),
+    bottom: readTable("bottomTable"),
     deliveryDate: deliveryDate.value,
     deliveryTime: deliveryTime.value
   };
 
-  const res = await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify(payload)
+  const res = await fetch(API_URL,{
+    method:"POST",
+    body:JSON.stringify(payload)
   });
+
   const data = await res.json();
-  alert("Saved. Slip No: " + data.slipNo);
+  altSlip.value = data.slipNo;
   window.print();
 }
 </script>
+
+</body>
+</html>
