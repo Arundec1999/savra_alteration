@@ -70,7 +70,6 @@ button{
 
 <h2>ALTERATION SLIP</h2>
 
-<!-- BRANCH -->
 <label>Branch / शाखा</label>
 <select id="branch" onchange="setPrefix()">
   <option value="">Select Branch</option>
@@ -79,42 +78,40 @@ button{
 </select>
 
 <label>Bill Prefix</label>
-<input type="text" id="billPrefix" readonly>
+<input id="billPrefix" readonly>
 
 <label>Bill Number *</label>
-<input type="number" id="billNo">
+<input id="billNo" type="number">
 
 <label>Alteration Slip No</label>
-<input type="text" id="altSlip" readonly>
+<input id="altSlip" readonly>
 
 <hr>
 
-<!-- CUSTOMER -->
 <h3>Customer Details / ग्राहक विवरण</h3>
 
 <label>Mobile Number *</label>
-<input type="tel" id="mobile" onblur="fetchCustomer()">
+<input id="mobile" type="tel" onblur="fetchCustomer()">
 
 <label>Customer Name *</label>
-<input type="text" id="customer">
+<input id="customer">
 
 <hr>
 
-<!-- TOP TABLE -->
 <h3>TOP – कुर्ता</h3>
 <table id="topTable">
-<tr><th>#</th><th>Measurement (माप)</th><th>Value</th></tr>
+<tr><th>#</th><th>Measurement</th><th>Value</th></tr>
 <tr data-label="Length"><td>1</td><td>Length</td><td><input></td></tr>
 <tr data-label="Length (लाई)"><td>2</td><td>Length (लाई)</td><td><input></td></tr>
-<tr data-label="U Chest"><td>3</td><td>U Chest (ऊपरी छाती)</td><td><input></td></tr>
-<tr data-label="Chest"><td>4</td><td>Chest (छाती)</td><td><input></td></tr>
-<tr data-label="L Chest"><td>5</td><td>L Chest (निचली छाती)</td><td><input></td></tr>
-<tr data-label="Waist"><td>6</td><td>Waist (कमर)</td><td><input></td></tr>
-<tr data-label="Hip"><td>7</td><td>Hip (कूल्हा)</td><td><input></td></tr>
+<tr data-label="U Chest"><td>3</td><td>U Chest</td><td><input></td></tr>
+<tr data-label="Chest"><td>4</td><td>Chest</td><td><input></td></tr>
+<tr data-label="L Chest"><td>5</td><td>L Chest</td><td><input></td></tr>
+<tr data-label="Waist"><td>6</td><td>Waist</td><td><input></td></tr>
+<tr data-label="Hip"><td>7</td><td>Hip</td><td><input></td></tr>
 <tr data-label="Sleeve"><td>8</td><td>Sleeve</td><td><input></td></tr>
-<tr data-label="Arm Hole"><td>9</td><td>Arm Hole (आर्म होल)</td><td><input></td></tr>
+<tr data-label="Arm Hole"><td>9</td><td>Arm Hole</td><td><input></td></tr>
 <tr data-label="Mori"><td>10</td><td>Mori</td><td><input></td></tr>
-<tr data-label="Bicep"><td>11</td><td>Bicep (बाइसेप्स)</td><td><input></td></tr>
+<tr data-label="Bicep"><td>11</td><td>Bicep</td><td><input></td></tr>
 <tr data-label="Elbow"><td>12</td><td>Elbow</td><td><input></td></tr>
 <tr data-label="Pad"><td>13</td><td>Pad</td>
 <td>
@@ -127,10 +124,9 @@ button{
 </tr>
 </table>
 
-<!-- BOTTOM TABLE -->
 <h3>BOTTOM – पैंट</h3>
 <table id="bottomTable">
-<tr><th>#</th><th>Measurement (माप)</th><th>Value</th></tr>
+<tr><th>#</th><th>Measurement</th><th>Value</th></tr>
 <tr data-label="Length"><td>1</td><td>Length</td><td><input></td></tr>
 <tr data-label="Waist"><td>2</td><td>Waist</td><td><input></td></tr>
 <tr data-label="Hip"><td>3</td><td>Hip</td><td><input></td></tr>
@@ -141,28 +137,21 @@ button{
 
 <hr>
 
-<!-- DELIVERY -->
 <h3>Delivery</h3>
-<label>Date</label>
-<input type="date" id="deliveryDate">
+<input id="deliveryDate" type="date">
+<input id="deliveryTime" type="time">
 
-<label>Time</label>
-<input type="time" id="deliveryTime">
-
-<button onclick="saveSlip()">SAVE & PRINT</button>
+<button type="button" onclick="saveSlip(event)">SAVE & PRINT</button>
 
 </div>
 
 <script>
-/* 🔴 PASTE YOUR APPS SCRIPT URL HERE */
 const API_URL = "https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 
-/* BRANCH PREFIX */
 function setPrefix(){
   billPrefix.value = branch.value;
 }
 
-/* FETCH CUSTOMER */
 async function fetchCustomer(){
   if(!mobile.value) return;
   const res = await fetch(`${API_URL}?action=getCustomer&mobile=${mobile.value}`);
@@ -172,23 +161,21 @@ async function fetchCustomer(){
   }
 }
 
-/* READ TABLE */
-function readTable(tableId){
+function readTable(id){
   let obj = {};
-  document.querySelectorAll(`#${tableId} tr[data-label]`).forEach(r=>{
-    const key = r.dataset.label;
-    const input = r.querySelector("input,select");
-    if(input && input.value.trim() !== ""){
-      obj[key] = input.value.trim();
-    }
+  document.querySelectorAll(`#${id} tr[data-label]`).forEach(r=>{
+    const k = r.dataset.label;
+    const v = r.querySelector("input,select").value;
+    if(v) obj[k] = v;
   });
   return obj;
 }
 
-/* SAVE */
-async function saveSlip(){
+async function saveSlip(e){
+  e.preventDefault();
+
   if(!billNo.value || !mobile.value || !customer.value){
-    alert("Fill mandatory fields");
+    alert("Please fill mandatory fields");
     return;
   }
 
@@ -205,14 +192,21 @@ async function saveSlip(){
     deliveryTime: deliveryTime.value
   };
 
-  const res = await fetch(API_URL,{
-    method:"POST",
-    body:JSON.stringify(payload)
-  });
+  try{
+    const res = await fetch(API_URL,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload)
+    });
 
-  const data = await res.json();
-  altSlip.value = data.slipNo;
-  window.print();
+    const data = await res.json();
+    altSlip.value = data.slipNo;
+    alert("Saved Successfully");
+    window.print();
+  }catch(err){
+    alert("Save failed. Check connection.");
+    console.error(err);
+  }
 }
 </script>
 
