@@ -72,7 +72,7 @@ button{
 
 <!-- BRANCH -->
 <label>Branch / शाखा</label>
-<select id="branch" onchange="setPrefix()">
+<select id="branch">
   <option value="">Loading branches...</option>
 </select>
 
@@ -132,31 +132,33 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF
 
 let branchMap = {};
 
-/* LOAD BRANCHES FROM SHEET */
+/* LOAD BRANCHES */
 window.onload = loadBranches;
 
 async function loadBranches(){
-  const res = await fetch(API_URL + "?action=getBranches");
-  const data = await res.json();
+  try{
+    const res = await fetch(API_URL + "?action=getBranches");
+    const data = await res.json();
 
-  const sel = document.getElementById("branch");
-  sel.innerHTML = `<option value="">Select Branch</option>`;
+    const sel = document.getElementById("branch");
+    sel.innerHTML = `<option value="">Select Branch</option>`;
 
-  data.branches.forEach(b=>{
-    branchMap[b.name] = b.prefix;
-    sel.innerHTML += `<option value="${b.name}">${b.name}</option>`;
-  });
-}
-
-/* SET PREFIX */
-function setPrefix(){
-  billPrefix.value = branchMap[branch.value] || "";
+    data.branches.forEach(b=>{
+      branchMap[b.name] = b.prefix;
+      sel.innerHTML += `<option value="${b.name}">${b.name}</option>`;
+    });
+  }catch(err){
+    alert("Failed to load branches");
+    console.error(err);
+  }
 }
 
 /* FETCH CUSTOMER */
 async function fetchCustomer(){
   if(!mobile.value) return;
-  const res = await fetch(API_URL + "?action=getCustomer&mobile=" + encodeURIComponent(mobile.value));
+  const res = await fetch(
+    API_URL + "?action=getCustomer&mobile=" + encodeURIComponent(mobile.value)
+  );
   const data = await res.json();
   if(data.found){
     customer.value = data.name;
@@ -174,36 +176,55 @@ function readTable(tableId){
   return JSON.stringify(obj);
 }
 
-/* FORM ENCODE */
-function encodeForm(data){
-  return Object.keys(data)
-    .map(k => encodeURIComponent(k) + "=" + encodeURIComponent(data[k]))
-    .join("&");
-}
-
-/* SAVE SLIP */
+/* SAVE SLIP – FINAL & SAFE */
 async function saveSlip(){
-  if(!branch.value || !billNo.value || !mobile.value || !customer.value){
-    alert("Please fill mandatory fields");
+
+  if(!branch.value){
+    alert("Please select branch");
+    return;
+  }
+
+  /* 🔥 PREFIX ALWAYS DERIVED HERE */
+  const prefix = branchMap[branch.value];
+  if(!prefix){
+    alert("Bill prefix missing – check BRANCH_MASTER");
+    return;
+  }
+  billPrefix.value = prefix;
+
+  if(!billNo.value){
+    alert("Please enter bill number");
+    return;
+  }
+  if(!mobile.value){
+    alert("Please enter mobile number");
+    return;
+  }
+  if(!customer.value){
+    alert("Please enter customer name");
     return;
   }
 
   const payload = {
-    branch: branch.value,
-    billPrefix: billPrefix.value,
-    billNo: billNo.value,
-    mobile: mobile.value,
-    name: customer.value,
+    branch: branch.value.trim(),
+    billPrefix: prefix.trim(),
+    billNo: billNo.value.trim(),
+    mobile: mobile.value.trim(),
+    name: customer.value.trim(),
     top: readTable("topTable"),
     bottom: readTable("bottomTable"),
-    deliveryDate: deliveryDate.value,
-    deliveryTime: deliveryTime.value
+    deliveryDate: deliveryDate.value || "",
+    deliveryTime: deliveryTime.value || ""
   };
+
+  const body = Object.keys(payload)
+    .map(k => encodeURIComponent(k) + "=" + encodeURIComponent(payload[k]))
+    .join("&");
 
   try{
     const res = await fetch(API_URL + "?action=saveSlip", {
       method: "POST",
-      body: encodeForm(payload)
+      body: body
     });
 
     const data = JSON.parse(await res.text());
@@ -213,8 +234,9 @@ async function saveSlip(){
       alert("Saved Successfully");
       window.print();
     }else{
-      alert("Save failed: " + (data.message || ""));
+      alert("Save failed: " + (data.message || "Unknown error"));
     }
+
   }catch(err){
     console.error(err);
     alert("Connection error");
