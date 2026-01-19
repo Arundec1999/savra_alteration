@@ -97,29 +97,23 @@ async function fetchCustomer(){
 
 /* READ TABLE */
 function readTable(id){
-  let o={};
+  let obj={};
   document.querySelectorAll(`#${id} tr[data-key]`).forEach(r=>{
     const v=r.querySelector("input").value.trim();
-    if(v) o[r.dataset.key]=v;
+    if(v) obj[r.dataset.key]=v;
   });
-  return JSON.stringify(o);
+  return JSON.stringify(obj);
 }
 
-/* SAVE */
+/* SAVE SLIP – FINAL */
 async function saveSlip(){
   if(!branch.value||!billNo.value||!mobile.value||!customer.value){
-    alert("Fill all mandatory fields"); return;
+    alert("Fill all mandatory fields"); 
+    return;
   }
 
   const prefix = branchMap[branch.value];
   billPrefix.value = prefix;
-
-  const body = Object.keys({
-    top: readTable("topTable"),
-    bottom: readTable("bottomTable"),
-    deliveryDate: deliveryDate.value,
-    deliveryTime: deliveryTime.value
-  }).map(k=>k+"="+encodeURIComponent(eval(k).value||"")).join("&");
 
   const url =
     API_URL +
@@ -130,15 +124,26 @@ async function saveSlip(){
     "&mobile=" + encodeURIComponent(mobile.value) +
     "&name=" + encodeURIComponent(customer.value);
 
-  const res = await fetch(url,{method:"POST",body:body});
-  const data = JSON.parse(await res.text());
+  const body =
+    "top=" + encodeURIComponent(readTable("topTable")) +
+    "&bottom=" + encodeURIComponent(readTable("bottomTable")) +
+    "&deliveryDate=" + encodeURIComponent(deliveryDate.value || "") +
+    "&deliveryTime=" + encodeURIComponent(deliveryTime.value || "");
 
-  if(data.status==="success"){
-    altSlip.value=data.slipNo;
-    alert("Saved");
-    window.print();
-  }else{
-    alert("Save failed: "+data.message);
+  try{
+    const res = await fetch(url,{ method:"POST", body:body });
+    const data = JSON.parse(await res.text());
+
+    if(data.status==="success"){
+      altSlip.value=data.slipNo;
+      alert("Saved Successfully");
+      window.print();
+    }else{
+      alert("Save failed: "+data.message);
+    }
+  }catch(err){
+    console.error(err);
+    alert("Connection error");
   }
 }
 </script>
