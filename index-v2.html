@@ -6,24 +6,71 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{font-family:Arial;background:#f4f4f4;padding:10px}
-.card{max-width:480px;margin:auto;background:#fff;padding:14px;border-radius:10px}
-h2,h3{text-align:center}
-label{font-weight:bold;font-size:14px}
-input,select{width:100%;padding:7px;margin-bottom:8px}
-table{width:100%;border-collapse:collapse;margin-bottom:10px}
-th,td{border:1px solid #ccc;padding:6px;font-size:13px}
-th{background:#eee}
-button{width:100%;padding:10px;background:black;color:white;border:none;border-radius:6px}
-@media print{button{display:none}}
+body{
+  font-family: Arial, sans-serif;
+  background:#f4f4f4;
+  padding:10px;
+}
+.card{
+  max-width:480px;
+  margin:auto;
+  background:#fff;
+  padding:14px;
+  border-radius:10px;
+  box-shadow:0 6px 16px rgba(0,0,0,.12);
+}
+h2,h3{
+  text-align:center;
+  margin:8px 0;
+}
+label{
+  font-size:14px;
+  font-weight:bold;
+}
+input, select{
+  width:100%;
+  padding:7px;
+  margin-bottom:8px;
+  font-size:14px;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-bottom:10px;
+}
+th,td{
+  border:1px solid #ccc;
+  padding:6px;
+  font-size:13px;
+}
+th{
+  background:#eee;
+}
+button{
+  width:100%;
+  padding:10px;
+  font-size:16px;
+  background:black;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+@media print{
+  body{ background:white; }
+  button{ display:none; }
+  .card{ box-shadow:none; }
+}
 </style>
 </head>
 
 <body>
 
 <div class="card">
+
 <h2>ALTERATION SLIP</h2>
 
+<!-- BRANCH -->
 <label>Branch / शाखा</label>
 <select id="branch" onchange="setPrefix()">
   <option value="">Loading branches...</option>
@@ -40,16 +87,18 @@ button{width:100%;padding:10px;background:black;color:white;border:none;border-r
 
 <hr>
 
-<h3>Customer Details</h3>
+<!-- CUSTOMER -->
+<h3>Customer Details / ग्राहक विवरण</h3>
 
-<label>Mobile *</label>
-<input id="mobile" onblur="fetchCustomer()">
+<label>Mobile Number *</label>
+<input id="mobile" type="tel" onblur="fetchCustomer()">
 
-<label>Name *</label>
+<label>Customer Name *</label>
 <input id="customer">
 
 <hr>
 
+<!-- TOP -->
 <h3>TOP – कुर्ता</h3>
 <table id="topTable">
 <tr><th>Measurement</th><th>Value</th></tr>
@@ -58,6 +107,7 @@ button{width:100%;padding:10px;background:black;color:white;border:none;border-r
 <tr data-key="Sleeve"><td>Sleeve</td><td><input></td></tr>
 </table>
 
+<!-- BOTTOM -->
 <h3>BOTTOM – पैंट</h3>
 <table id="bottomTable">
 <tr><th>Measurement</th><th>Value</th></tr>
@@ -67,21 +117,24 @@ button{width:100%;padding:10px;background:black;color:white;border:none;border-r
 
 <hr>
 
-<label>Delivery Date</label>
+<!-- DELIVERY -->
+<h3>Delivery</h3>
 <input id="deliveryDate" type="date">
-<label>Delivery Time</label>
 <input id="deliveryTime" type="time">
 
-<button onclick="saveSlip()">SAVE & PRINT</button>
+<button type="button" onclick="saveSlip()">SAVE & PRINT</button>
+
 </div>
 
 <script>
+/* 🔒 YOUR APPS SCRIPT URL */
 const API_URL = "https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
+
 let branchMap = {};
 
+/* LOAD BRANCHES FROM SHEET */
 window.onload = loadBranches;
 
-/* FETCH BRANCHES */
 async function loadBranches(){
   const res = await fetch(API_URL + "?action=getBranches");
   const data = await res.json();
@@ -95,61 +148,76 @@ async function loadBranches(){
   });
 }
 
-/* PREFIX AUTO */
+/* SET PREFIX */
 function setPrefix(){
   billPrefix.value = branchMap[branch.value] || "";
 }
 
-/* CUSTOMER FETCH */
+/* FETCH CUSTOMER */
 async function fetchCustomer(){
   if(!mobile.value) return;
-  const res = await fetch(API_URL + "?action=getCustomer&mobile=" + mobile.value);
+  const res = await fetch(API_URL + "?action=getCustomer&mobile=" + encodeURIComponent(mobile.value));
   const data = await res.json();
-  if(data.found) customer.value = data.name;
+  if(data.found){
+    customer.value = data.name;
+  }
 }
 
-/* READ TABLE */
-function readTable(id){
-  let o={};
-  document.querySelectorAll(`#${id} tr[data-key]`).forEach(r=>{
-    const v=r.querySelector("input").value;
-    if(v) o[r.dataset.key]=v;
+/* READ MEASUREMENT TABLE */
+function readTable(tableId){
+  let obj = {};
+  document.querySelectorAll(`#${tableId} tr[data-key]`).forEach(row=>{
+    const key = row.dataset.key;
+    const val = row.querySelector("input").value.trim();
+    if(val !== "") obj[key] = val;
   });
-  return JSON.stringify(o);
+  return JSON.stringify(obj);
 }
 
-/* SAVE */
+/* FORM ENCODE */
+function encodeForm(data){
+  return Object.keys(data)
+    .map(k => encodeURIComponent(k) + "=" + encodeURIComponent(data[k]))
+    .join("&");
+}
+
+/* SAVE SLIP */
 async function saveSlip(){
   if(!branch.value || !billNo.value || !mobile.value || !customer.value){
-    alert("Fill mandatory fields"); return;
+    alert("Please fill mandatory fields");
+    return;
   }
 
-  const payload={
-    action:"saveSlip",
-    branch:branch.value,
-    billPrefix:billPrefix.value,
-    billNo:billNo.value,
-    mobile:mobile.value,
-    name:customer.value,
-    top:readTable("topTable"),
-    bottom:readTable("bottomTable"),
-    deliveryDate:deliveryDate.value,
-    deliveryTime:deliveryTime.value
+  const payload = {
+    branch: branch.value,
+    billPrefix: billPrefix.value,
+    billNo: billNo.value,
+    mobile: mobile.value,
+    name: customer.value,
+    top: readTable("topTable"),
+    bottom: readTable("bottomTable"),
+    deliveryDate: deliveryDate.value,
+    deliveryTime: deliveryTime.value
   };
 
-  const body=Object.keys(payload).map(
-    k=>encodeURIComponent(k)+"="+encodeURIComponent(payload[k])
-  ).join("&");
+  try{
+    const res = await fetch(API_URL + "?action=saveSlip", {
+      method: "POST",
+      body: encodeForm(payload)
+    });
 
-  const res=await fetch(API_URL,{method:"POST",body});
-  const data=JSON.parse(await res.text());
+    const data = JSON.parse(await res.text());
 
-  if(data.status==="success"){
-    altSlip.value=data.slipNo;
-    alert("Saved");
-    window.print();
-  }else{
-    alert("Save failed: "+(data.message||""));
+    if(data.status === "success"){
+      altSlip.value = data.slipNo;
+      alert("Saved Successfully");
+      window.print();
+    }else{
+      alert("Save failed: " + (data.message || ""));
+    }
+  }catch(err){
+    console.error(err);
+    alert("Connection error");
   }
 }
 </script>
