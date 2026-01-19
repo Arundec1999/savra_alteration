@@ -1,214 +1,148 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Alteration Slip</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+/***********************
+ * CONFIG
+ ***********************/
+const SHEET_CUSTOMERS = "CUSTOMERS";
+const SHEET_SLIPS = "ALTERATION_SLIPS";
+const SHEET_BRANCH = "BRANCH_MASTER";
 
-<style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f4f4f4;
-  padding:10px;
-}
-.card{
-  max-width:480px;
-  margin:auto;
-  background:#fff;
-  padding:14px;
-  border-radius:10px;
-  box-shadow:0 6px 16px rgba(0,0,0,.12);
-}
-h2,h3{
-  text-align:center;
-  margin:8px 0;
-}
-label{
-  font-size:14px;
-  font-weight:bold;
-}
-input, select{
-  width:100%;
-  padding:7px;
-  margin-bottom:8px;
-  font-size:14px;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-bottom:10px;
-}
-th,td{
-  border:1px solid #ccc;
-  padding:6px;
-  font-size:13px;
-}
-th{
-  background:#eee;
-}
-button{
-  width:100%;
-  padding:10px;
-  font-size:16px;
-  background:black;
-  color:white;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-}
-@media print{
-  body{ background:white; }
-  button{ display:none; }
-  .card{ box-shadow:none; }
-}
-</style>
-</head>
-
-<body>
-
-<div class="card" id="printArea">
-
-<h2>ALTERATION SLIP</h2>
-
-<label>Branch / शाखा</label>
-<select id="branch" onchange="setPrefix()">
-  <option value="">Select Branch</option>
-  <option value="PN">Pratap Nagar</option>
-  <option value="TR">Tonk Road</option>
-</select>
-
-<label>Bill Prefix</label>
-<input id="billPrefix" readonly>
-
-<label>Bill Number *</label>
-<input id="billNo" type="number">
-
-<label>Alteration Slip No</label>
-<input id="altSlip" readonly>
-
-<hr>
-
-<h3>Customer Details / ग्राहक विवरण</h3>
-
-<label>Mobile Number *</label>
-<input id="mobile" type="tel" onblur="fetchCustomer()">
-
-<label>Customer Name *</label>
-<input id="customer">
-
-<hr>
-
-<h3>TOP – कुर्ता</h3>
-<table id="topTable">
-<tr><th>#</th><th>Measurement</th><th>Value</th></tr>
-<tr data-label="Length"><td>1</td><td>Length</td><td><input></td></tr>
-<tr data-label="Length (लाई)"><td>2</td><td>Length (लाई)</td><td><input></td></tr>
-<tr data-label="U Chest"><td>3</td><td>U Chest</td><td><input></td></tr>
-<tr data-label="Chest"><td>4</td><td>Chest</td><td><input></td></tr>
-<tr data-label="L Chest"><td>5</td><td>L Chest</td><td><input></td></tr>
-<tr data-label="Waist"><td>6</td><td>Waist</td><td><input></td></tr>
-<tr data-label="Hip"><td>7</td><td>Hip</td><td><input></td></tr>
-<tr data-label="Sleeve"><td>8</td><td>Sleeve</td><td><input></td></tr>
-<tr data-label="Arm Hole"><td>9</td><td>Arm Hole</td><td><input></td></tr>
-<tr data-label="Mori"><td>10</td><td>Mori</td><td><input></td></tr>
-<tr data-label="Bicep"><td>11</td><td>Bicep</td><td><input></td></tr>
-<tr data-label="Elbow"><td>12</td><td>Elbow</td><td><input></td></tr>
-<tr data-label="Pad"><td>13</td><td>Pad</td>
-<td>
-<select>
-  <option value="">--</option>
-  <option>Yes</option>
-  <option>No</option>
-</select>
-</td>
-</tr>
-</table>
-
-<h3>BOTTOM – पैंट</h3>
-<table id="bottomTable">
-<tr><th>#</th><th>Measurement</th><th>Value</th></tr>
-<tr data-label="Length"><td>1</td><td>Length</td><td><input></td></tr>
-<tr data-label="Waist"><td>2</td><td>Waist</td><td><input></td></tr>
-<tr data-label="Hip"><td>3</td><td>Hip</td><td><input></td></tr>
-<tr data-label="Mori"><td>4</td><td>Mori</td><td><input></td></tr>
-<tr data-label="Thigh"><td>5</td><td>Thigh</td><td><input></td></tr>
-<tr data-label="Knee"><td>6</td><td>Knee</td><td><input></td></tr>
-</table>
-
-<hr>
-
-<h3>Delivery</h3>
-<input id="deliveryDate" type="date">
-<input id="deliveryTime" type="time">
-
-<button type="button" onclick="saveSlip(event)">SAVE & PRINT</button>
-
-</div>
-
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
-
-function setPrefix(){
-  billPrefix.value = branch.value;
-}
-
-async function fetchCustomer(){
-  if(!mobile.value) return;
-  const res = await fetch(`${API_URL}?action=getCustomer&mobile=${mobile.value}`);
-  const data = await res.json();
-  if(data.found){
-    customer.value = data.name;
+/***********************
+ * ENTRY POINTS
+ ***********************/
+function doGet(e) {
+  try {
+    const action = e.parameter.action;
+    if (action === "getCustomer") return getCustomer(e);
+    if (action === "getSlip") return getSlip(e);
+    return respond({ status: "error", message: "Invalid GET action" });
+  } catch (err) {
+    return respond({ status: "error", message: err.toString() });
   }
 }
 
-function readTable(id){
-  let obj = {};
-  document.querySelectorAll(`#${id} tr[data-label]`).forEach(r=>{
-    const k = r.dataset.label;
-    const v = r.querySelector("input,select").value;
-    if(v) obj[k] = v;
-  });
-  return obj;
-}
-
-async function saveSlip(e){
-  e.preventDefault();
-
-  if(!billNo.value || !mobile.value || !customer.value){
-    alert("Please fill mandatory fields");
-    return;
-  }
-
-  const payload = {
-    action:"saveSlip",
-    branch: branch.options[branch.selectedIndex].text,
-    billPrefix: billPrefix.value,
-    billNo: billNo.value,
-    mobile: mobile.value,
-    name: customer.value,
-    top: readTable("topTable"),
-    bottom: readTable("bottomTable"),
-    deliveryDate: deliveryDate.value,
-    deliveryTime: deliveryTime.value
-  };
-
-  try{
-    const res = await fetch(API_URL,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-    altSlip.value = data.slipNo;
-    alert("Saved Successfully");
-    window.print();
-  }catch(err){
-    alert("Save failed. Check connection.");
-    console.error(err);
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    if (data.action === "saveSlip") return saveSlip(data);
+    return respond({ status: "error", message: "Invalid POST action" });
+  } catch (err) {
+    return respond({ status: "error", message: err.toString() });
   }
 }
-</script>
 
-</body>
-</html>
+/***********************
+ * CUSTOMER FETCH
+ ***********************/
+function getCustomer(e) {
+  const mobile = e.parameter.mobile;
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_CUSTOMERS);
+  const rows = sh.getDataRange().getValues();
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][2]) === String(mobile)) {
+      return respond({
+        found: true,
+        customerID: rows[i][0],
+        name: rows[i][1]
+      });
+    }
+  }
+  return respond({ found: false });
+}
+
+/***********************
+ * FETCH SLIP (OPTIONAL – FUTURE USE)
+ ***********************/
+function getSlip(e) {
+  const key = e.parameter.key;
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_SLIPS);
+  const rows = sh.getDataRange().getValues();
+
+  for (let i = 1; i < rows.length; i++) {
+    const altSlip = rows[i][0];
+    const billRef = `${rows[i][2]}-${rows[i][3]}`;
+
+    if (altSlip === key || billRef === key) {
+      return respond({ found: true, data: rows[i] });
+    }
+  }
+  return respond({ found: false });
+}
+
+/***********************
+ * SAVE SLIP
+ ***********************/
+function saveSlip(d) {
+  const ss = SpreadsheetApp.getActive();
+  const shCust = ss.getSheetByName(SHEET_CUSTOMERS);
+  const shSlip = ss.getSheetByName(SHEET_SLIPS);
+  const shBranch = ss.getSheetByName(SHEET_BRANCH);
+
+  /******** CUSTOMER ********/
+  let customerID = "";
+  const custRows = shCust.getDataRange().getValues();
+
+  for (let i = 1; i < custRows.length; i++) {
+    if (String(custRows[i][2]) === String(d.mobile)) {
+      customerID = custRows[i][0];
+      shCust.getRange(i + 1, 5).setValue(new Date()); // Last Visit
+      break;
+    }
+  }
+
+  if (!customerID) {
+    customerID = "CUST-" + Date.now();
+    shCust.appendRow([
+      customerID,
+      d.name,
+      d.mobile,
+      new Date(), // First Visit
+      new Date()  // Last Visit
+    ]);
+  }
+
+  /******** ALTERATION SLIP NUMBER ********/
+  const branchRows = shBranch.getDataRange().getValues();
+  let slipNo = "";
+
+  for (let i = 1; i < branchRows.length; i++) {
+    if (branchRows[i][1] === d.billPrefix) {
+      const nextCounter = Number(branchRows[i][2]) + 1;
+      shBranch.getRange(i + 1, 3).setValue(nextCounter);
+      slipNo = `ALT-${d.billPrefix}-${String(nextCounter).padStart(6, "0")}`;
+      break;
+    }
+  }
+
+  if (!slipNo) {
+    throw new Error("Branch prefix not found in BRANCH_MASTER");
+  }
+
+  /******** SAVE SLIP ********/
+  shSlip.appendRow([
+    slipNo,                 // AltSlipNo
+    d.branch,               // Branch
+    d.billPrefix,           // BillPrefix
+    d.billNo,               // BillNo
+    customerID,             // CustomerID
+    d.name,                 // CustomerName
+    d.mobile,               // Mobile
+    JSON.stringify(d.top),  // TopMeasurements
+    JSON.stringify(d.bottom),// BottomMeasurements
+    d.deliveryDate,         // DeliveryDate
+    d.deliveryTime,         // DeliveryTime
+    new Date(),             // CreatedAt
+    new Date()              // LastUpdated
+  ]);
+
+  return respond({ status: "success", slipNo });
+}
+
+/***********************
+ * RESPONSE HELPER
+ ***********************/
+function respond(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader("Access-Control-Allow-Origin", "*");
+}
