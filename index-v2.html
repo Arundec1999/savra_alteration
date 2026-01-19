@@ -6,75 +6,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f4f4f4;
-  padding:10px;
-}
-.card{
-  max-width:480px;
-  margin:auto;
-  background:#fff;
-  padding:14px;
-  border-radius:10px;
-  box-shadow:0 6px 16px rgba(0,0,0,.12);
-}
-h2,h3{
-  text-align:center;
-  margin:8px 0;
-}
-label{
-  font-size:14px;
-  font-weight:bold;
-}
-input, select{
-  width:100%;
-  padding:7px;
-  margin-bottom:8px;
-  font-size:14px;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-bottom:10px;
-}
-th,td{
-  border:1px solid #ccc;
-  padding:6px;
-  font-size:13px;
-}
-th{
-  background:#eee;
-}
-button{
-  width:100%;
-  padding:10px;
-  font-size:16px;
-  background:black;
-  color:white;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-}
-@media print{
-  body{ background:white; }
-  button{ display:none; }
-  .card{ box-shadow:none; }
-}
+body{font-family:Arial;background:#f4f4f4;padding:10px}
+.card{max-width:480px;margin:auto;background:#fff;padding:14px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+h2,h3{text-align:center;margin:8px 0}
+label{font-size:14px;font-weight:bold}
+input,select{width:100%;padding:7px;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin-bottom:10px}
+th,td{border:1px solid #ccc;padding:6px;font-size:13px}
+th{background:#eee}
+button{width:100%;padding:10px;font-size:16px;background:black;color:white;border:none;border-radius:6px}
+@media print{button{display:none}.card{box-shadow:none}}
 </style>
 </head>
 
 <body>
 
 <div class="card">
-
 <h2>ALTERATION SLIP</h2>
 
-<!-- BRANCH -->
-<label>Branch / शाखा</label>
-<select id="branch">
-  <option value="">Loading branches...</option>
-</select>
+<label>Branch</label>
+<select id="branch"></select>
 
 <label>Bill Prefix</label>
 <input id="billPrefix" readonly>
@@ -87,18 +38,15 @@ button{
 
 <hr>
 
-<!-- CUSTOMER -->
-<h3>Customer Details / ग्राहक विवरण</h3>
+<h3>Customer</h3>
+<label>Mobile *</label>
+<input id="mobile" onblur="fetchCustomer()">
 
-<label>Mobile Number *</label>
-<input id="mobile" type="tel" onblur="fetchCustomer()">
-
-<label>Customer Name *</label>
+<label>Name *</label>
 <input id="customer">
 
 <hr>
 
-<!-- TOP -->
 <h3>TOP – कुर्ता</h3>
 <table id="topTable">
 <tr><th>Measurement</th><th>Value</th></tr>
@@ -107,7 +55,6 @@ button{
 <tr data-key="Sleeve"><td>Sleeve</td><td><input></td></tr>
 </table>
 
-<!-- BOTTOM -->
 <h3>BOTTOM – पैंट</h3>
 <table id="bottomTable">
 <tr><th>Measurement</th><th>Value</th></tr>
@@ -117,129 +64,81 @@ button{
 
 <hr>
 
-<!-- DELIVERY -->
-<h3>Delivery</h3>
+<label>Delivery Date</label>
 <input id="deliveryDate" type="date">
+<label>Delivery Time</label>
 <input id="deliveryTime" type="time">
 
-<button type="button" onclick="saveSlip()">SAVE & PRINT</button>
-
+<button onclick="saveSlip()">SAVE & PRINT</button>
 </div>
 
 <script>
-/* 🔒 YOUR APPS SCRIPT URL */
 const API_URL = "https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
-
 let branchMap = {};
 
 /* LOAD BRANCHES */
-window.onload = loadBranches;
-
-async function loadBranches(){
-  try{
-    const res = await fetch(API_URL + "?action=getBranches");
-    const data = await res.json();
-
-    const sel = document.getElementById("branch");
-    sel.innerHTML = `<option value="">Select Branch</option>`;
-
-    data.branches.forEach(b=>{
-      branchMap[b.name] = b.prefix;
-      sel.innerHTML += `<option value="${b.name}">${b.name}</option>`;
-    });
-  }catch(err){
-    alert("Failed to load branches");
-    console.error(err);
-  }
-}
+window.onload = async () => {
+  const res = await fetch(API_URL + "?action=getBranches");
+  const data = await res.json();
+  branch.innerHTML = `<option value="">Select Branch</option>`;
+  data.branches.forEach(b=>{
+    branchMap[b.name] = b.prefix;
+    branch.innerHTML += `<option value="${b.name}">${b.name}</option>`;
+  });
+};
 
 /* FETCH CUSTOMER */
 async function fetchCustomer(){
   if(!mobile.value) return;
-  const res = await fetch(
-    API_URL + "?action=getCustomer&mobile=" + encodeURIComponent(mobile.value)
-  );
+  const res = await fetch(API_URL + "?action=getCustomer&mobile=" + mobile.value);
   const data = await res.json();
-  if(data.found){
-    customer.value = data.name;
-  }
+  if(data.found) customer.value = data.name;
 }
 
-/* READ MEASUREMENT TABLE */
-function readTable(tableId){
-  let obj = {};
-  document.querySelectorAll(`#${tableId} tr[data-key]`).forEach(row=>{
-    const key = row.dataset.key;
-    const val = row.querySelector("input").value.trim();
-    if(val !== "") obj[key] = val;
+/* READ TABLE */
+function readTable(id){
+  let o={};
+  document.querySelectorAll(`#${id} tr[data-key]`).forEach(r=>{
+    const v=r.querySelector("input").value.trim();
+    if(v) o[r.dataset.key]=v;
   });
-  return JSON.stringify(obj);
+  return JSON.stringify(o);
 }
 
-/* SAVE SLIP – FINAL & SAFE */
+/* SAVE */
 async function saveSlip(){
-
-  if(!branch.value){
-    alert("Please select branch");
-    return;
+  if(!branch.value||!billNo.value||!mobile.value||!customer.value){
+    alert("Fill all mandatory fields"); return;
   }
 
-  /* 🔥 PREFIX ALWAYS DERIVED HERE */
   const prefix = branchMap[branch.value];
-  if(!prefix){
-    alert("Bill prefix missing – check BRANCH_MASTER");
-    return;
-  }
   billPrefix.value = prefix;
 
-  if(!billNo.value){
-    alert("Please enter bill number");
-    return;
-  }
-  if(!mobile.value){
-    alert("Please enter mobile number");
-    return;
-  }
-  if(!customer.value){
-    alert("Please enter customer name");
-    return;
-  }
-
-  const payload = {
-    branch: branch.value.trim(),
-    billPrefix: prefix.trim(),
-    billNo: billNo.value.trim(),
-    mobile: mobile.value.trim(),
-    name: customer.value.trim(),
+  const body = Object.keys({
     top: readTable("topTable"),
     bottom: readTable("bottomTable"),
-    deliveryDate: deliveryDate.value || "",
-    deliveryTime: deliveryTime.value || ""
-  };
+    deliveryDate: deliveryDate.value,
+    deliveryTime: deliveryTime.value
+  }).map(k=>k+"="+encodeURIComponent(eval(k).value||"")).join("&");
 
-  const body = Object.keys(payload)
-    .map(k => encodeURIComponent(k) + "=" + encodeURIComponent(payload[k]))
-    .join("&");
+  const url =
+    API_URL +
+    "?action=saveSlip" +
+    "&branch=" + encodeURIComponent(branch.value) +
+    "&billPrefix=" + encodeURIComponent(prefix) +
+    "&billNo=" + encodeURIComponent(billNo.value) +
+    "&mobile=" + encodeURIComponent(mobile.value) +
+    "&name=" + encodeURIComponent(customer.value);
 
-  try{
-    const res = await fetch(API_URL + "?action=saveSlip", {
-      method: "POST",
-      body: body
-    });
+  const res = await fetch(url,{method:"POST",body:body});
+  const data = JSON.parse(await res.text());
 
-    const data = JSON.parse(await res.text());
-
-    if(data.status === "success"){
-      altSlip.value = data.slipNo;
-      alert("Saved Successfully");
-      window.print();
-    }else{
-      alert("Save failed: " + (data.message || "Unknown error"));
-    }
-
-  }catch(err){
-    console.error(err);
-    alert("Connection error");
+  if(data.status==="success"){
+    altSlip.value=data.slipNo;
+    alert("Saved");
+    window.print();
+  }else{
+    alert("Save failed: "+data.message);
   }
 }
 </script>
