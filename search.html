@@ -7,9 +7,11 @@
 <style>
 body{font-family:Arial;background:#f4f4f4;padding:10px}
 .card{max-width:500px;margin:auto;background:#fff;padding:15px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.12)}
-input,button,select{width:100%;padding:8px;margin:6px 0}
-button{background:black;color:white;border:none;border-radius:6px}
-.result{background:#f9f9f9;padding:10px;margin-top:10px;border-radius:6px}
+input,button,select{width:100%;padding:8px;margin:6px 0;font-size:14px}
+button{background:black;color:white;border:none;border-radius:6px;cursor:pointer}
+.result{background:#f9f9f9;padding:10px;margin-top:10px;border-radius:6px;font-size:14px}
+h2{text-align:center}
+hr{margin:10px 0}
 </style>
 </head>
 <body>
@@ -25,7 +27,7 @@ button{background:black;color:white;border:none;border-radius:6px}
 <input id="searchSlipNo" placeholder="Enter Slip Number (digits only)">
 <button onclick="searchBySlip()">Search by Slip No</button>
 
-<input id="searchBillNo" placeholder="Enter Bill Number">
+<input id="searchBillNo" placeholder="Enter Bill Number (digits only)">
 <button onclick="searchByBill()">Search by Bill No</button>
 
 <input id="searchMobile" placeholder="Enter Customer Mobile">
@@ -56,6 +58,7 @@ function formatSlipNumber(num){
  return `ALT-${prefix}-${String(num).padStart(6,'0')}`;
 }
 
+/* SEARCH BY SLIP */
 async function searchBySlip(){
  if(!branch.value){alert("Select branch");return;}
  const formatted = formatSlipNumber(searchSlipNo.value.trim());
@@ -64,44 +67,70 @@ async function searchBySlip(){
  showSlip(d);
 }
 
+/* SEARCH BY BILL (PREFIX + NUMBER) */
 async function searchByBill(){
  if(!branch.value){alert("Select branch");return;}
- const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&billNo=${searchBillNo.value}`);
+ const prefix = branchMap[branch.value];
+ const billDigits = searchBillNo.value.trim();
+
+ const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&prefix=${prefix}&billNo=${billDigits}`);
  const d=await res.json();
  showSlip(d);
 }
 
+/* SEARCH BY MOBILE */
 async function searchByMobile(){
  if(!branch.value){alert("Select branch");return;}
  const res=await fetch(API_URL+`?action=getSlipsByMobile&branch=${branch.value}&mobile=${searchMobile.value}`);
  const d=await res.json();
  mobileResults.innerHTML="";
- if(d.slips.length===0){mobileResults.innerHTML="No slips found";return;}
+ slipDetails.innerHTML="";
+
+ if(d.slips.length===0){
+   mobileResults.innerHTML="<div class='result'>No slips found</div>";
+   return;
+ }
+
  d.slips.forEach(s=>{
-  mobileResults.innerHTML+=`<button onclick="loadSlip('${s.slipNo}')">${s.slipNo} | Bill: ${s.billNo} | Delivery: ${s.deliveryDate}</button>`;
+  mobileResults.innerHTML+=`
+    <button onclick="loadSlip('${s.slipNo}')">
+      ${s.slipNo} | Bill: ${s.billNo} | Delivery: ${s.deliveryDate}
+    </button>`;
  });
 }
 
+/* LOAD SLIP DETAILS */
 async function loadSlip(slipNo){
  const res=await fetch(API_URL+`?action=searchSlip&slipNo=${slipNo}&branch=${branch.value}`);
  const d=await res.json();
  showSlip(d);
 }
 
+/* DISPLAY SLIP */
 function showSlip(d){
- if(d.status!=="success"){slipDetails.innerHTML="Slip not found";return;}
+ if(d.status!=="success"){
+   slipDetails.innerHTML="Slip not found";
+   return;
+ }
+
  slipDetails.innerHTML=`
  <b>Slip No:</b> ${d.slipNo}<br>
+ <b>Bill No:</b> ${d.billPrefix}-${d.billNo}<br>
  <b>Name:</b> ${d.name}<br>
  <b>Mobile:</b> ${d.mobile}<br>
- <b>Bill No:</b> ${d.billNo}<br>
- <b>Created:</b> ${new Date(d.createdDate).toLocaleString()}<br>
- <b>Delivery:</b> ${d.deliveryDate} ${d.deliveryTime}<br><hr>
- <b>Products:</b><br>${d.products.join("<br>")}<br><hr>
- <b>Top Measurements:</b><br>${Object.entries(d.top).map(([k,v])=>k+": "+v).join("<br>")}<br><hr>
- <b>Bottom Measurements:</b><br>${Object.entries(d.bottom).map(([k,v])=>k+": "+v).join("<br>")}
+ <b>Created On:</b> ${new Date(d.createdDate).toLocaleString()}<br>
+ <b>Delivery:</b> ${d.deliveryDate || "-"} ${d.deliveryTime || ""}<br>
+ <hr>
+ <b>Products:</b><br>${d.products.length?d.products.join("<br>"):"None"}<br>
+ <hr>
+ <b>Top Measurements:</b><br>
+ ${Object.entries(d.top).map(([k,v])=>k+": "+v).join("<br>") || "None"}<br>
+ <hr>
+ <b>Bottom Measurements:</b><br>
+ ${Object.entries(d.bottom).map(([k,v])=>k+": "+v).join("<br>") || "None"}
  `;
 }
 </script>
+
 </body>
 </html>
