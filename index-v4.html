@@ -167,14 +167,15 @@ async function saveSlip(){
 
  const url=API_URL+`?action=saveSlip&branch=${encodeURIComponent(branch.value)}&billPrefix=${b.prefix}&billNo=${billNo.value}&mobile=${mobile.value}&name=${encodeURIComponent(customer.value)}`;
 
- const body=
- "products="+encodeURIComponent(JSON.stringify(products))+
- "&top="+encodeURIComponent(JSON.stringify(topData))+
- "&bottom="+encodeURIComponent(JSON.stringify(bottomData))+
- "&deliveryDate="+encodeURIComponent(deliveryDate.value||"")+
- "&deliveryTime="+encodeURIComponent(deliveryTime.value||"");
+ const urlWithData = url +
+ "&products=" + encodeURIComponent(JSON.stringify(products)) +
+ "&top=" + encodeURIComponent(JSON.stringify(topData)) +
+ "&bottom=" + encodeURIComponent(JSON.stringify(bottomData)) +
+ "&deliveryDate=" + encodeURIComponent(deliveryDate.value || "") +
+ "&deliveryTime=" + encodeURIComponent(deliveryTime.value || "");
 
- const res=await fetch(url,{method:"POST",body:body});
+ const res = await fetch(urlWithData, { method: "POST" });
+
  const data=await res.json();
 
  if(data.status==="success"){
