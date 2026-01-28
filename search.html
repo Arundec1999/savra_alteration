@@ -4,19 +4,20 @@
 <meta charset="UTF-8">
 <title>Search & Edit Slip</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
-body{font-family:Arial;background:#f4f4f4;padding:10px}
-.card{max-width:520px;margin:auto;background:#fff;padding:15px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.12)}
-input,button,select{width:100%;padding:8px;margin:6px 0;font-size:14px}
-button{background:black;color:white;border:none;border-radius:6px}
-.result{background:#fafafa;padding:10px;margin-top:10px;border-radius:6px;font-size:14px}
-hr{margin:10px 0}
-h2{text-align:center}
-.smallBtn{width:auto;padding:4px 8px;font-size:12px;margin-left:6px}
+body{font-family:'Segoe UI',Arial;background:#f2f3f7;padding:12px}
+.card{max-width:560px;margin:auto;background:#fff;padding:18px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.08)}
+h2{text-align:center;margin-bottom:10px}
+.section{margin-top:14px;padding-top:10px;border-top:1px solid #eee}
+input,select,button{width:100%;padding:9px;border-radius:6px;border:1px solid #ccc;margin:6px 0;font-size:14px;box-sizing:border-box}
+button{background:#111;color:#fff;border:none}
+.result{background:#fafafa;padding:12px;margin-top:12px;border-radius:8px;font-size:14px}
+.smallBtn{width:auto;padding:4px 8px;font-size:12px;margin-left:6px;background:#555}
 .locked{background:#eee}
-table{width:100%;border-collapse:collapse}
-td{padding:4px;font-size:13px}
-.topInfo b{display:inline-block;width:110px}
+table{width:100%;border-collapse:collapse;margin-top:6px}
+td{padding:6px;border-bottom:1px solid #eee;font-size:13px}
+.topInfo b{display:inline-block;width:120px}
 </style>
 </head>
 <body>
@@ -24,11 +25,12 @@ td{padding:4px;font-size:13px}
 <div class="card">
 <h2>Search & Edit Alteration Slip</h2>
 
+<div class="section">
 <label>Select Branch</label>
 <select id="branch"></select>
+</div>
 
-<hr>
-
+<div class="section">
 <input id="searchSlipNo" placeholder="Slip Number (digits only)">
 <button onclick="searchBySlip()">Search by Slip No</button>
 
@@ -37,6 +39,7 @@ td{padding:4px;font-size:13px}
 
 <input id="searchMobile" placeholder="Customer Mobile">
 <button onclick="searchByMobile()">Search by Mobile</button>
+</div>
 
 <div id="mobileResults"></div>
 <div id="slipDetails" class="result"></div>
@@ -46,9 +49,11 @@ td{padding:4px;font-size:13px}
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 let branchMap={}, currentProducts=[], currentSlip=null;
 
-const TOP_FIELDS=["Length","Chest","Sleeve"];
-const BOTTOM_FIELDS=["Length","Waist"];
+const TOP_FIELDS=["Length","Chest","Waist","Hip","Shoulder","Sleeve Length","Sleeve Round","Armhole","Neck Depth Front","Neck Depth Back"];
+const BOTTOM_FIELDS=["Length","Waist","Hip","Thigh","Knee","Bottom"];
+const timeSlots=["11:00 AM","12:00 PM","01:00 PM","02:00 PM","03:00 PM","04:00 PM","05:00 PM","06:00 PM","07:00 PM","08:00 PM","09:00 PM"];
 
+/* FAST BRANCH LOAD */
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
  const data=await res.json();
@@ -59,27 +64,29 @@ window.onload=async()=>{
  });
 };
 
+/* FORMAT SLIP */
 function formatSlipNumber(num){
  const prefix = branchMap[branch.value];
  return `ALT-${prefix}-${String(num).padStart(6,'0')}`;
 }
 
+/* SEARCH FUNCTIONS */
 async function searchBySlip(){
- if(!branch.value){alert("Select branch");return;}
+ if(!branch.value)return alert("Select branch");
  const slip=formatSlipNumber(searchSlipNo.value.trim());
  const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&slipNo=${slip}`);
  showSlip(await res.json());
 }
 
 async function searchByBill(){
- if(!branch.value){alert("Select branch");return;}
+ if(!branch.value)return alert("Select branch");
  const prefix=branchMap[branch.value];
  const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&prefix=${prefix}&billNo=${searchBillNo.value}`);
  showSlip(await res.json());
 }
 
 async function searchByMobile(){
- if(!branch.value){alert("Select branch");return;}
+ if(!branch.value)return alert("Select branch");
  const res=await fetch(API_URL+`?action=getSlipsByMobile&branch=${branch.value}&mobile=${searchMobile.value}`);
  const d=await res.json();
  mobileResults.innerHTML="";
@@ -93,6 +100,7 @@ async function loadSlip(slipNo){
  showSlip(await res.json());
 }
 
+/* SHOW SLIP */
 function showSlip(d){
  if(d.status!=="success"){slipDetails.innerHTML="Slip not found";return;}
  currentSlip=d;
@@ -104,9 +112,9 @@ function showSlip(d){
  <b>Bill No:</b> ${d.billPrefix}-${d.billNo}<br>
  <b>Name:</b> ${d.name}<br>
  <b>Mobile:</b> ${d.mobile}<br>
- <b>Created:</b> ${new Date(d.createdDate).toLocaleString()}<br>
  <b>Delivery Date:</b> <input type="date" id="editDeliveryDate" value="${d.deliveryDate||""}" disabled class="locked"><br>
- <b>Delivery Time:</b> <input type="time" id="editDeliveryTime" value="${d.deliveryTime||""}" disabled class="locked"><br>
+ <b>Delivery Time:</b>
+ <select id="editDeliveryTime" disabled class="locked">${timeSlots.map(t=>`<option ${t===d.deliveryTime?"selected":""}>${t}</option>`).join("")}</select>
  <button onclick="unlockDelivery()">Edit Delivery</button>
  </div>
 
@@ -137,6 +145,7 @@ function unlockDelivery(){
  editDeliveryTime.classList.remove("locked");
 }
 
+/* PRODUCTS */
 function renderEditableProducts(){
  editProducts.innerHTML="";
  currentProducts.forEach((p,i)=>{
@@ -158,17 +167,18 @@ function removeEditProduct(i){
  renderEditableProducts();
 }
 
+/* MEASUREMENTS */
 function renderMeasurementTable(container,fields,data){
  let html="";
  fields.forEach(f=>{
-  html+=`<tr><td>${f}</td><td><input data-key="${f}" value="${data[f]||""}"></td></tr>`;
+  html+=`<<tr><td>${f}</td><td><input data-key="${f}" value="${data[f]||""}"></td></tr>`;
  });
  document.getElementById(container).innerHTML=html;
 }
 
+/* UPDATE SLIP */
 async function updateSlip(){
  const top={}, bottom={};
-
  document.querySelectorAll("#editTopTable input").forEach(i=>top[i.dataset.key]=i.value);
  document.querySelectorAll("#editBottomTable input").forEach(i=>bottom[i.dataset.key]=i.value);
 
@@ -184,11 +194,9 @@ async function updateSlip(){
 
  const res=await fetch(API_URL,{method:"POST",body});
  const d=await res.json();
-
- if(d.status==="success"){alert("Slip updated successfully");}
+ if(d.status==="success") alert("Slip updated successfully");
  else alert("Update failed");
 }
 </script>
-
 </body>
 </html>
