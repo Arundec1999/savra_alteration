@@ -2,35 +2,36 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Search Alteration Slip</title>
+<title>Search & Edit Slip</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body{font-family:Arial;background:#f4f4f4;padding:10px}
-.card{max-width:500px;margin:auto;background:#fff;padding:15px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+.card{max-width:520px;margin:auto;background:#fff;padding:15px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.12)}
 input,button,select{width:100%;padding:8px;margin:6px 0;font-size:14px}
-button{background:black;color:white;border:none;border-radius:6px;cursor:pointer}
-.result{background:#f9f9f9;padding:10px;margin-top:10px;border-radius:6px;font-size:14px}
-h2{text-align:center}
+button{background:black;color:white;border:none;border-radius:6px}
+.result{background:#fafafa;padding:10px;margin-top:10px;border-radius:6px;font-size:14px}
 hr{margin:10px 0}
+h2{text-align:center}
+.smallBtn{width:auto;padding:4px 8px;font-size:12px;margin-left:6px}
 </style>
 </head>
 <body>
 
 <div class="card">
-<h2>Search Alteration Slip</h2>
+<h2>Search & Edit Alteration Slip</h2>
 
 <label>Select Branch</label>
 <select id="branch"></select>
 
 <hr>
 
-<input id="searchSlipNo" placeholder="Enter Slip Number (digits only)">
+<input id="searchSlipNo" placeholder="Slip Number (digits only)">
 <button onclick="searchBySlip()">Search by Slip No</button>
 
-<input id="searchBillNo" placeholder="Enter Bill Number (digits only)">
+<input id="searchBillNo" placeholder="Bill Number (digits only)">
 <button onclick="searchByBill()">Search by Bill No</button>
 
-<input id="searchMobile" placeholder="Enter Customer Mobile">
+<input id="searchMobile" placeholder="Customer Mobile">
 <button onclick="searchByMobile()">Search by Mobile</button>
 
 <div id="mobileResults"></div>
@@ -39,9 +40,8 @@ hr{margin:10px 0}
 
 <script>
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
-let branchMap={};
+let branchMap={}, currentProducts=[], currentSlip=null;
 
-/* LOAD BRANCHES */
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
  const data=await res.json();
@@ -52,83 +52,124 @@ window.onload=async()=>{
  });
 };
 
-/* FORMAT SLIP NUMBER */
 function formatSlipNumber(num){
  const prefix = branchMap[branch.value];
  return `ALT-${prefix}-${String(num).padStart(6,'0')}`;
 }
 
-/* SEARCH BY SLIP */
 async function searchBySlip(){
  if(!branch.value){alert("Select branch");return;}
- const formatted = formatSlipNumber(searchSlipNo.value.trim());
- const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&slipNo=${formatted}`);
- const d=await res.json();
- showSlip(d);
+ const slip=formatSlipNumber(searchSlipNo.value.trim());
+ const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&slipNo=${slip}`);
+ showSlip(await res.json());
 }
 
-/* SEARCH BY BILL (PREFIX + NUMBER) */
 async function searchByBill(){
  if(!branch.value){alert("Select branch");return;}
- const prefix = branchMap[branch.value];
- const billDigits = searchBillNo.value.trim();
-
- const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&prefix=${prefix}&billNo=${billDigits}`);
- const d=await res.json();
- showSlip(d);
+ const prefix=branchMap[branch.value];
+ const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&prefix=${prefix}&billNo=${searchBillNo.value}`);
+ showSlip(await res.json());
 }
 
-/* SEARCH BY MOBILE */
 async function searchByMobile(){
  if(!branch.value){alert("Select branch");return;}
  const res=await fetch(API_URL+`?action=getSlipsByMobile&branch=${branch.value}&mobile=${searchMobile.value}`);
  const d=await res.json();
  mobileResults.innerHTML="";
- slipDetails.innerHTML="";
-
- if(d.slips.length===0){
-   mobileResults.innerHTML="<div class='result'>No slips found</div>";
-   return;
- }
-
  d.slips.forEach(s=>{
-  mobileResults.innerHTML+=`
-    <button onclick="loadSlip('${s.slipNo}')">
-      ${s.slipNo} | Bill: ${s.billNo} | Delivery: ${s.deliveryDate}
-    </button>`;
+  mobileResults.innerHTML+=`<button onclick="loadSlip('${s.slipNo}')">${s.slipNo} | Bill: ${s.billNo} | Delivery: ${s.deliveryDate}</button>`;
  });
 }
 
-/* LOAD SLIP DETAILS */
 async function loadSlip(slipNo){
- const res=await fetch(API_URL+`?action=searchSlip&slipNo=${slipNo}&branch=${branch.value}`);
- const d=await res.json();
- showSlip(d);
+ const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&slipNo=${slipNo}`);
+ showSlip(await res.json());
 }
 
-/* DISPLAY SLIP */
 function showSlip(d){
- if(d.status!=="success"){
-   slipDetails.innerHTML="Slip not found";
-   return;
- }
+ if(d.status!=="success"){slipDetails.innerHTML="Slip not found";return;}
+ currentSlip=d;
+ currentProducts=[...d.products];
 
  slipDetails.innerHTML=`
  <b>Slip No:</b> ${d.slipNo}<br>
- <b>Bill No:</b> ${d.billPrefix}-${d.billNo}<br>
+ <b>Bill:</b> ${d.billPrefix}-${d.billNo}<br>
  <b>Name:</b> ${d.name}<br>
  <b>Mobile:</b> ${d.mobile}<br>
- <b>Created On:</b> ${new Date(d.createdDate).toLocaleString()}<br>
- <b>Delivery:</b> ${d.deliveryDate || "-"} ${d.deliveryTime || ""}<br>
- <hr>
- <b>Products:</b><br>${d.products.length?d.products.join("<br>"):"None"}<br>
- <hr>
- <b>Top Measurements:</b><br>
- ${Object.entries(d.top).map(([k,v])=>k+": "+v).join("<br>") || "None"}<br>
- <hr>
- <b>Bottom Measurements:</b><br>
- ${Object.entries(d.bottom).map(([k,v])=>k+": "+v).join("<br>") || "None"}
+ <b>Created:</b> ${new Date(d.createdDate).toLocaleString()}<hr>
+
+ <b>Delivery Date</b>
+ <input type="date" id="editDeliveryDate" value="${d.deliveryDate||""}">
+ <b>Delivery Time</b>
+ <input type="time" id="editDeliveryTime" value="${d.deliveryTime||""}"><hr>
+
+ <b>Products</b>
+ <div id="editProducts"></div>
+ <input id="newBarcode" placeholder="Scan new barcode" onkeypress="addEditProduct(event)"><hr>
+
+ <b>Top Measurements</b>
+ <div id="editTop"></div><hr>
+
+ <b>Bottom Measurements</b>
+ <div id="editBottom"></div><hr>
+
+ <button onclick="updateSlip()">UPDATE SLIP</button>
  `;
+
+ renderEditableProducts();
+ renderEditableTable("editTop",d.top);
+ renderEditableTable("editBottom",d.bottom);
+}
+
+function renderEditableProducts(){
+ editProducts.innerHTML="";
+ currentProducts.forEach((p,i)=>{
+  editProducts.innerHTML+=`${p} <button class="smallBtn" onclick="removeEditProduct(${i})">X</button><br>`;
+ });
+}
+
+function addEditProduct(e){
+ if(e.key==="Enter"){
+  e.preventDefault();
+  currentProducts.push(newBarcode.value);
+  newBarcode.value="";
+  renderEditableProducts();
+ }
+}
+
+function removeEditProduct(i){
+ currentProducts.splice(i,1);
+ renderEditableProducts();
+}
+
+function renderEditableTable(container,data){
+ let html="";
+ Object.entries(data).forEach(([k,v])=>{
+  html+=`${k}: <input value="${v}" data-key="${k}"><br>`;
+ });
+ document.getElementById(container).innerHTML=html;
+}
+
+async function updateSlip(){
+ const top={}, bottom={};
+ document.querySelectorAll("#editTop input").forEach(i=>top[i.dataset.key]=i.value);
+ document.querySelectorAll("#editBottom input").forEach(i=>bottom[i.dataset.key]=i.value);
+
+ const body=new URLSearchParams({
+  action:"updateSlip",
+  slipNo:currentSlip.slipNo,
+  products:JSON.stringify(currentProducts),
+  top:JSON.stringify(top),
+  bottom:JSON.stringify(bottom),
+  deliveryDate:editDeliveryDate.value,
+  deliveryTime:editDeliveryTime.value
+ });
+
+ const res=await fetch(API_URL,{method:"POST",body});
+ const d=await res.json();
+
+ if(d.status==="success"){alert("Slip updated successfully");}
+ else alert("Update failed");
 }
 </script>
 
