@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Alteration Slip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{font-family:'Segoe UI',Arial;background:#f2f3f7;padding:12px}
+.card{max-width:520px;margin:auto;background:#fff;padding:16px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.08)}
+h2{margin:4px 0 12px;text-align:center}
+.section{margin-top:14px;padding-top:10px;border-top:1px solid #eee}
+label{font-size:13px;font-weight:600;margin-bottom:3px;display:block}
+input,select{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:8px;font-size:14px}
+table{width:100%;border-collapse:collapse;margin-top:6px}
+th,td{border:1px solid #e0e0e0;padding:6px;font-size:13px}
+th{background:#f7f7f7;text-align:left}
+button{width:100%;padding:11px;font-size:15px;background:#111;color:white;border:none;border-radius:8px;margin-top:10px}
+.small-note{font-size:12px;color:#777;margin-top:-4px;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>ALTERATION SLIP</h2>
+
+<div class="section">
+<label>Branch</label>
+<select id="branch"></select>
+
+<label>Bill Number</label>
+<input id="billNo" type="number" placeholder="Enter bill number">
+<div class="small-note">Full Bill No will be shown as: <b id="billPreview">—</b></div>
+
+<label>Alteration Slip No</label>
+<input id="altSlip" readonly>
+</div>
+
+<div class="section">
+<h3>Customer</h3>
+<label>Mobile</label>
+<input id="mobile" type="tel">
+<label>Name</label>
+<input id="customer">
+</div>
+
+<div class="section">
+<h3>Products for Alteration</h3>
+<input id="barcodeInput" placeholder="Scan or Enter Barcode">
+<table id="productTable"><tr><th>Barcode</th><th>Remove</th></tr></table>
+</div>
+
+<div class="section">
+<h3>TOP – कुर्ता</h3>
+<table id="topTable"></table>
+</div>
+
+<div class="section">
+<h3>BOTTOM – पैंट</h3>
+<table id="bottomTable"></table>
+</div>
+
+<div class="section">
+<label>Delivery Date</label>
+<input id="deliveryDate" type="date">
+<label>Delivery Time</label>
+<input id="deliveryTime" type="time">
+</div>
+
+<button onclick="saveSlip()">SAVE & PRINT</button>
+</div>
+
+<!-- RECEIPT TEMPLATE -->
+<div id="printSlip" style="display:none;font-family:'Courier New';width:280px;font-size:14px;line-height:1.4">
+<div style="text-align:center;font-size:18px;font-weight:bold;">SAVRA</div>
+<div id="pBranchAddress" style="font-size:12px;"></div>
+<div id="pBranchContact" style="font-size:12px;"></div>
+<hr>
+Slip: <span id="pSlipNo"></span><br>
+Bill: <span id="pBillNo"></span><br>
+Date: <span id="pDate"></span> <span id="pTime"></span>
+<hr>
+Customer: <span id="pName"></span><br>
+Mobile: <span id="pMobile"></span>
+<hr>
+<b>Products</b>
+<table id="pProducts"></table>
+<hr>
+<b>TOP</b>
+<table id="pTopTable"></table>
+<b>BOTTOM</b>
+<table id="pBottomTable"></table>
+<hr>
+Delivery: <span id="pDeliveryDate"></span> <span id="pDeliveryTime"></span>
+</div>
+
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
+let branchMap={},products=[];
+
+/* FULL MEASUREMENT LISTS */
+const TOP_FIELDS=["Length","Chest","Waist","Hip","Shoulder","Sleeve Length","Sleeve Round","Armhole","Neck Depth Front","Neck Depth Back"];
+const BOTTOM_FIELDS=["Length","Waist","Hip","Thigh","Knee","Bottom"];
+
+/* BUILD MEASUREMENT TABLES */
+function buildTable(id,fields){
+ let html="<tr><th>Measurement</th><th>Value</th></tr>";
+ fields.forEach(f=>html+=`<tr data-key="${f}"><td>${f}</td><td><input></td></tr>`);
+ document.getElementById(id).innerHTML=html;
+}
+buildTable("topTable",TOP_FIELDS);
+buildTable("bottomTable",BOTTOM_FIELDS);
+
+/* LOAD BRANCHES FAST */
+window.onload=async()=>{
+ const res=await fetch(API_URL+"?action=getBranches");
+ const data=await res.json();
+ branch.innerHTML=`<option value="">Select Branch</option>`;
+ data.branches.forEach(b=>{
+  branchMap[b.name]=b;
+  branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;
+ });
+};
+
+/* AUTO PREFIX PREVIEW */
+branch.onchange=updateBillPreview;
+billNo.oninput=updateBillPreview;
+function updateBillPreview(){
+ if(branch.value && billNo.value){
+  billPreview.innerText=branchMap[branch.value].prefix+"-"+billNo.value;
+ }
+}
+
+/* FAST CUSTOMER FETCH */
+mobile.addEventListener("blur",async()=>{
+ if(!mobile.value)return;
+ const res=await fetch(API_URL+"?action=getCustomer&mobile="+mobile.value);
+ const d=await res.json();
+ if(d.found) customer.value=d.name;
+});
+
+/* BARCODE */
+barcodeInput.addEventListener("keypress",e=>{
+ if(e.key==="Enter"){
+  e.preventDefault();
+  products.push(barcodeInput.value.trim());
+  barcodeInput.value="";
+  renderProducts();
+ }
+});
+function renderProducts(){
+ productTable.innerHTML="<tr><th>Barcode</th><th>Remove</th></tr>";
+ products.forEach((p,i)=>productTable.innerHTML+=`<tr><td>${p}</td><td><button onclick="products.splice(${i},1);renderProducts()">X</button></td></tr>`);
+}
+
+/* READ TABLE */
+function readTable(id){
+ let o={};
+ document.querySelectorAll(`#${id} tr[data-key]`).forEach(r=>{
+  const v=r.querySelector("input").value.trim();
+  if(v)o[r.dataset.key]=v;
+ });
+ return o;
+}
+
+/* FORMAT TIME AM/PM */
+function formatAMPM(time){
+ if(!time)return"";
+ const [h,m]=time.split(":");
+ let hr=+h;
+ const ampm=hr>=12?"PM":"AM";
+ hr=hr%12||12;
+ return `${hr}:${m} ${ampm}`;
+}
+
+/* SAVE */
+async function saveSlip(){
+ if(!branch.value||!billNo.value||!mobile.value||!customer.value){alert("Fill all mandatory");return;}
+ const b=branchMap[branch.value];
+
+ const topData=readTable("topTable");
+ const bottomData=readTable("bottomTable");
+
+ const url=API_URL+`?action=saveSlip&branch=${branch.value}&billPrefix=${b.prefix}&billNo=${billNo.value}&mobile=${mobile.value}&name=${encodeURIComponent(customer.value)}`;
+
+ const urlWithData=url+
+ "&products="+encodeURIComponent(JSON.stringify(products))+
+ "&top="+encodeURIComponent(JSON.stringify(topData))+
+ "&bottom="+encodeURIComponent(JSON.stringify(bottomData))+
+ "&deliveryDate="+deliveryDate.value+
+ "&deliveryTime="+deliveryTime.value;
+
+ const res=await fetch(urlWithData,{method:"POST"});
+ const data=await res.json();
+
+ if(data.status==="success"){
+  altSlip.value=data.slipNo;
+
+  pSlipNo.innerText=data.slipNo;
+  pBillNo.innerText=b.prefix+"-"+billNo.value;
+  pDate.innerText=new Date().toLocaleDateString();
+  pTime.innerText=new Date().toLocaleTimeString();
+  pName.innerText=customer.value;
+  pMobile.innerText=mobile.value;
+  pDeliveryDate.innerText=deliveryDate.value;
+  pDeliveryTime.innerText=formatAMPM(deliveryTime.value);
+  pBranchAddress.innerText=b.address;
+  pBranchContact.innerText="Contact: "+b.contact;
+
+  pProducts.innerHTML=products.map(p=>`<tr><td>${p}</td></tr>`).join("");
+  pTopTable.innerHTML=Object.entries(topData).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+  pBottomTable.innerHTML=Object.entries(bottomData).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+
+  const w=window.open('','','width=320,height=700');
+  w.document.write(`<html><body style="font-family:Courier New;width:280px;padding:6px;">${printSlip.innerHTML}</body></html>`);
+  w.document.close();w.print();w.close();
+ }
+}
+</script>
+</body>
+</html>
