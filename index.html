@@ -20,7 +20,7 @@ body{
   box-shadow:0 8px 20px rgba(0,0,0,.08);
 }
 h2{
-  margin:0 0 12px;
+  margin:0 0 6px;
   text-align:center;
 }
 .section{
@@ -80,6 +80,10 @@ button{
 <div class="card">
 <h2>ALTERATION SLIP</h2>
 
+<button onclick="goToSearch()" style="background:#444;margin-bottom:10px;">
+🔍 Search / Edit Slip
+</button>
+
 <div class="section">
 <label>Branch</label>
 <select id="branch"></select>
@@ -130,10 +134,17 @@ button{
 </div>
 
 <!-- RECEIPT TEMPLATE -->
-<div id="printSlip" style="display:none;font-family:'Courier New';width:280px;font-size:14px;line-height:1.4">
-<div style="text-align:center;font-size:18px;font-weight:bold;">SAVRA</div>
-<div id="pBranchAddress" style="font-size:12px;"></div>
-<div id="pBranchContact" style="font-size:12px;"></div>
+<div id="printSlip" style="display:none;
+  font-family:'Courier New',monospace;
+  font-weight:700;
+  width:280px;
+  font-size:15px;
+  line-height:1.5;
+  color:#000;">
+
+<div style="text-align:center;font-size:20px;font-weight:900;">SAVRA</div>
+<div id="pBranchAddress" style="font-size:13px;"></div>
+<div id="pBranchContact" style="font-size:13px;"></div>
 <hr>
 Slip: <span id="pSlipNo"></span><br>
 Bill: <span id="pBillNo"></span><br>
@@ -142,7 +153,7 @@ Date: <span id="pDate"></span> <span id="pTime"></span>
 Customer: <span id="pName"></span><br>
 Mobile: <span id="pMobile"></span>
 <hr>
-<b>Products</b>
+<b>PRODUCTS</b>
 <table id="pProducts"></table>
 <hr>
 <b>TOP</b>
@@ -150,17 +161,21 @@ Mobile: <span id="pMobile"></span>
 <b>BOTTOM</b>
 <table id="pBottomTable"></table>
 <hr>
-Delivery: <span id="pDeliveryDate"></span> <span id="pDeliveryTime"></span>
+Delivery: <span id="pDeliveryDate"></span><br>
+Time: <span id="pDeliveryTime"></span>
 </div>
 
 <script>
+function goToSearch(){
+  window.location.href="search.html";
+}
+
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 let branchMap={},products=[];
 
 const TOP_FIELDS=["Length","Chest","Waist","Hip","Shoulder","Sleeve Length","Sleeve Round","Armhole","Neck Depth Front","Neck Depth Back"];
 const BOTTOM_FIELDS=["Length","Waist","Hip","Thigh","Knee","Bottom"];
 
-/* BUILD MEASUREMENT TABLES */
 function buildTable(id,fields){
  let html="<tr><th>Measurement</th><th>Value</th></tr>";
  fields.forEach(f=>html+=`<tr data-key="${f}"><td>${f}</td><td><input></td></tr>`);
@@ -169,12 +184,10 @@ function buildTable(id,fields){
 buildTable("topTable",TOP_FIELDS);
 buildTable("bottomTable",BOTTOM_FIELDS);
 
-/* DELIVERY TIME OPTIONS */
 const timeSlots=["11:00 AM","12:00 PM","01:00 PM","02:00 PM","03:00 PM","04:00 PM","05:00 PM","06:00 PM","07:00 PM","08:00 PM","09:00 PM"];
 deliveryTime.innerHTML='<option value="">Select Time</option>';
 timeSlots.forEach(t=>deliveryTime.innerHTML+=`<option value="${t}">${t}</option>`);
 
-/* LOAD BRANCHES */
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
  const data=await res.json();
@@ -185,14 +198,12 @@ window.onload=async()=>{
  });
 };
 
-/* BILL PREVIEW */
 branch.onchange=billNo.oninput=()=>{
  if(branch.value&&billNo.value){
   billPreview.innerText=branchMap[branch.value].prefix+"-"+billNo.value;
  }
 };
 
-/* CUSTOMER FETCH */
 mobile.addEventListener("blur",async()=>{
  if(!mobile.value)return;
  const res=await fetch(API_URL+"?action=getCustomer&mobile="+mobile.value);
@@ -200,7 +211,6 @@ mobile.addEventListener("blur",async()=>{
  if(d.found) customer.value=d.name;
 });
 
-/* BARCODE */
 barcodeInput.addEventListener("keypress",e=>{
  if(e.key==="Enter"){
   e.preventDefault();
@@ -214,7 +224,6 @@ function renderProducts(){
  products.forEach((p,i)=>productTable.innerHTML+=`<tr><td>${p}</td><td><button onclick="products.splice(${i},1);renderProducts()">X</button></td></tr>`);
 }
 
-/* READ TABLE */
 function readTable(id){
  let o={};
  document.querySelectorAll(`#${id} tr[data-key]`).forEach(r=>{
@@ -224,7 +233,6 @@ function readTable(id){
  return o;
 }
 
-/* SAVE */
 async function saveSlip(){
  if(!branch.value||!billNo.value||!mobile.value||!customer.value){alert("Fill all mandatory");return;}
  const b=branchMap[branch.value];
@@ -263,7 +271,7 @@ async function saveSlip(){
   pBottomTable.innerHTML=Object.entries(bottomData).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
 
   const w=window.open('','','width=320,height=700');
-  w.document.write(`<html><body style="font-family:Courier New;width:280px;padding:6px;">${printSlip.innerHTML}</body></html>`);
+  w.document.write(`<html><body style="font-family:Courier New;font-weight:700;font-size:15px;width:280px;padding:6px;">${printSlip.innerHTML}</body></html>`);
   w.document.close();w.print();w.close();
  }
 }
