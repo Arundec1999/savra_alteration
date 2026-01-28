@@ -6,17 +6,73 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{font-family:'Segoe UI',Arial;background:#f2f3f7;padding:12px}
-.card{max-width:520px;margin:auto;background:#fff;padding:16px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.08)}
-h2{margin:4px 0 12px;text-align:center}
-.section{margin-top:14px;padding-top:10px;border-top:1px solid #eee}
-label{font-size:13px;font-weight:600;margin-bottom:3px;display:block}
-input,select{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:8px;font-size:14px}
-table{width:100%;border-collapse:collapse;margin-top:6px}
-th,td{border:1px solid #e0e0e0;padding:6px;font-size:13px}
-th{background:#f7f7f7;text-align:left}
-button{width:100%;padding:11px;font-size:15px;background:#111;color:white;border:none;border-radius:8px;margin-top:10px}
-.small-note{font-size:12px;color:#777;margin-top:-4px;margin-bottom:6px}
+body{
+  font-family:'Segoe UI',Arial;
+  background:#f2f3f7;
+  padding:12px;
+}
+.card{
+  max-width:520px;
+  margin:auto;
+  background:#fff;
+  padding:18px;
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,.08);
+}
+h2{
+  margin:0 0 12px;
+  text-align:center;
+}
+.section{
+  margin-top:16px;
+  padding-top:12px;
+  border-top:1px solid #eee;
+}
+label{
+  font-size:13px;
+  font-weight:600;
+  margin-bottom:4px;
+  display:block;
+}
+input,select{
+  width:100%;
+  padding:9px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  margin-bottom:10px;
+  font-size:14px;
+  box-sizing:border-box;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:6px;
+}
+th,td{
+  border:1px solid #e0e0e0;
+  padding:6px;
+  font-size:13px;
+}
+th{
+  background:#f7f7f7;
+  text-align:left;
+}
+button{
+  width:100%;
+  padding:12px;
+  font-size:15px;
+  background:#111;
+  color:white;
+  border:none;
+  border-radius:8px;
+  margin-top:14px;
+}
+.small-note{
+  font-size:12px;
+  color:#777;
+  margin-top:-6px;
+  margin-bottom:8px;
+}
 </style>
 </head>
 <body>
@@ -30,7 +86,7 @@ button{width:100%;padding:11px;font-size:15px;background:#111;color:white;border
 
 <label>Bill Number</label>
 <input id="billNo" type="number" placeholder="Enter bill number">
-<div class="small-note">Full Bill No will be shown as: <b id="billPreview">—</b></div>
+<div class="small-note">Full Bill No: <b id="billPreview">—</b></div>
 
 <label>Alteration Slip No</label>
 <input id="altSlip" readonly>
@@ -47,7 +103,9 @@ button{width:100%;padding:11px;font-size:15px;background:#111;color:white;border
 <div class="section">
 <h3>Products for Alteration</h3>
 <input id="barcodeInput" placeholder="Scan or Enter Barcode">
-<table id="productTable"><tr><th>Barcode</th><th>Remove</th></tr></table>
+<table id="productTable">
+<tr><th>Barcode</th><th>Remove</th></tr>
+</table>
 </div>
 
 <div class="section">
@@ -63,8 +121,9 @@ button{width:100%;padding:11px;font-size:15px;background:#111;color:white;border
 <div class="section">
 <label>Delivery Date</label>
 <input id="deliveryDate" type="date">
+
 <label>Delivery Time</label>
-<input id="deliveryTime" type="time">
+<select id="deliveryTime"></select>
 </div>
 
 <button onclick="saveSlip()">SAVE & PRINT</button>
@@ -98,7 +157,6 @@ Delivery: <span id="pDeliveryDate"></span> <span id="pDeliveryTime"></span>
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 let branchMap={},products=[];
 
-/* FULL MEASUREMENT LISTS */
 const TOP_FIELDS=["Length","Chest","Waist","Hip","Shoulder","Sleeve Length","Sleeve Round","Armhole","Neck Depth Front","Neck Depth Back"];
 const BOTTOM_FIELDS=["Length","Waist","Hip","Thigh","Knee","Bottom"];
 
@@ -111,7 +169,12 @@ function buildTable(id,fields){
 buildTable("topTable",TOP_FIELDS);
 buildTable("bottomTable",BOTTOM_FIELDS);
 
-/* LOAD BRANCHES FAST */
+/* DELIVERY TIME OPTIONS */
+const timeSlots=["11:00 AM","12:00 PM","01:00 PM","02:00 PM","03:00 PM","04:00 PM","05:00 PM","06:00 PM","07:00 PM","08:00 PM","09:00 PM"];
+deliveryTime.innerHTML='<option value="">Select Time</option>';
+timeSlots.forEach(t=>deliveryTime.innerHTML+=`<option value="${t}">${t}</option>`);
+
+/* LOAD BRANCHES */
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
  const data=await res.json();
@@ -122,16 +185,14 @@ window.onload=async()=>{
  });
 };
 
-/* AUTO PREFIX PREVIEW */
-branch.onchange=updateBillPreview;
-billNo.oninput=updateBillPreview;
-function updateBillPreview(){
- if(branch.value && billNo.value){
+/* BILL PREVIEW */
+branch.onchange=billNo.oninput=()=>{
+ if(branch.value&&billNo.value){
   billPreview.innerText=branchMap[branch.value].prefix+"-"+billNo.value;
  }
-}
+};
 
-/* FAST CUSTOMER FETCH */
+/* CUSTOMER FETCH */
 mobile.addEventListener("blur",async()=>{
  if(!mobile.value)return;
  const res=await fetch(API_URL+"?action=getCustomer&mobile="+mobile.value);
@@ -161,16 +222,6 @@ function readTable(id){
   if(v)o[r.dataset.key]=v;
  });
  return o;
-}
-
-/* FORMAT TIME AM/PM */
-function formatAMPM(time){
- if(!time)return"";
- const [h,m]=time.split(":");
- let hr=+h;
- const ampm=hr>=12?"PM":"AM";
- hr=hr%12||12;
- return `${hr}:${m} ${ampm}`;
 }
 
 /* SAVE */
@@ -203,7 +254,7 @@ async function saveSlip(){
   pName.innerText=customer.value;
   pMobile.innerText=mobile.value;
   pDeliveryDate.innerText=deliveryDate.value;
-  pDeliveryTime.innerText=formatAMPM(deliveryTime.value);
+  pDeliveryTime.innerText=deliveryTime.value;
   pBranchAddress.innerText=b.address;
   pBranchContact.innerText="Contact: "+b.contact;
 
