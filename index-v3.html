@@ -18,15 +18,34 @@ button{width:100%;padding:10px;font-size:16px;background:black;color:white;borde
 
 /* ===== PRINT STYLING ===== */
 @media print {
-  body * { visibility:hidden; }
-  #printSlip, #printSlip * { visibility:visible; }
-  #printSlip { 
-    position:absolute; 
-    left:0; 
-    top:0; 
-    width:280px; 
-    font-family:'Courier New', monospace;
-    line-height:1.4;
+
+  @page {
+    size: 80mm auto;   /* Thermal receipt width */
+    margin: 0;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #printSlip, #printSlip * {
+    visibility: visible;
+  }
+
+  #printSlip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 280px;
+    padding: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    page-break-after: avoid;
   }
 }
 </style>
