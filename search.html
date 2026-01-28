@@ -17,7 +17,12 @@ button{background:black;color:white;border:none;border-radius:6px}
 <div class="card">
 <h2>Search Alteration Slip</h2>
 
-<input id="searchSlipNo" placeholder="Enter Slip Number">
+<label>Select Branch</label>
+<select id="branch"></select>
+
+<hr>
+
+<input id="searchSlipNo" placeholder="Enter Slip Number (digits only)">
 <button onclick="searchBySlip()">Search by Slip No</button>
 
 <input id="searchBillNo" placeholder="Enter Bill Number">
@@ -32,21 +37,43 @@ button{background:black;color:white;border:none;border-radius:6px}
 
 <script>
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
+let branchMap={};
+
+/* LOAD BRANCHES */
+window.onload=async()=>{
+ const res=await fetch(API_URL+"?action=getBranches");
+ const data=await res.json();
+ branch.innerHTML="<option value=''>Select Branch</option>";
+ data.branches.forEach(b=>{
+   branchMap[b.name]=b.prefix;
+   branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;
+ });
+};
+
+/* FORMAT SLIP NUMBER */
+function formatSlipNumber(num){
+ const prefix = branchMap[branch.value];
+ return `ALT-${prefix}-${String(num).padStart(6,'0')}`;
+}
 
 async function searchBySlip(){
- const res=await fetch(API_URL+`?action=searchSlip&slipNo=${searchSlipNo.value}`);
+ if(!branch.value){alert("Select branch");return;}
+ const formatted = formatSlipNumber(searchSlipNo.value.trim());
+ const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&slipNo=${formatted}`);
  const d=await res.json();
  showSlip(d);
 }
 
 async function searchByBill(){
- const res=await fetch(API_URL+`?action=searchSlip&billNo=${searchBillNo.value}`);
+ if(!branch.value){alert("Select branch");return;}
+ const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&billNo=${searchBillNo.value}`);
  const d=await res.json();
  showSlip(d);
 }
 
 async function searchByMobile(){
- const res=await fetch(API_URL+`?action=getSlipsByMobile&mobile=${searchMobile.value}`);
+ if(!branch.value){alert("Select branch");return;}
+ const res=await fetch(API_URL+`?action=getSlipsByMobile&branch=${branch.value}&mobile=${searchMobile.value}`);
  const d=await res.json();
  mobileResults.innerHTML="";
  if(d.slips.length===0){mobileResults.innerHTML="No slips found";return;}
@@ -56,7 +83,7 @@ async function searchByMobile(){
 }
 
 async function loadSlip(slipNo){
- const res=await fetch(API_URL+`?action=searchSlip&slipNo=${slipNo}`);
+ const res=await fetch(API_URL+`?action=searchSlip&slipNo=${slipNo}&branch=${branch.value}`);
  const d=await res.json();
  showSlip(d);
 }
