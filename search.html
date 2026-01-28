@@ -16,6 +16,7 @@ h2{text-align:center}
 .locked{background:#eee}
 table{width:100%;border-collapse:collapse}
 td{padding:4px;font-size:13px}
+.topInfo b{display:inline-block;width:110px}
 </style>
 </head>
 <body>
@@ -98,17 +99,17 @@ function showSlip(d){
  currentProducts=[...d.products];
 
  slipDetails.innerHTML=`
+ <div class="topInfo">
  <b>Slip No:</b> ${d.slipNo}<br>
- <b>Bill:</b> ${d.billPrefix}-${d.billNo}<br>
+ <b>Bill No:</b> ${d.billPrefix}-${d.billNo}<br>
  <b>Name:</b> ${d.name}<br>
  <b>Mobile:</b> ${d.mobile}<br>
- <b>Created:</b> ${new Date(d.createdDate).toLocaleString()}<hr>
-
- <b>Delivery Date</b>
- <input type="date" id="editDeliveryDate" value="${d.deliveryDate||""}" disabled class="locked">
- <b>Delivery Time</b>
- <input type="time" id="editDeliveryTime" value="${d.deliveryTime||""}" disabled class="locked">
+ <b>Created:</b> ${new Date(d.createdDate).toLocaleString()}<br>
+ <b>Delivery Date:</b> <input type="date" id="editDeliveryDate" value="${d.deliveryDate||""}" disabled class="locked"><br>
+ <b>Delivery Time:</b> <input type="time" id="editDeliveryTime" value="${d.deliveryTime||""}" disabled class="locked"><br>
  <button onclick="unlockDelivery()">Edit Delivery</button>
+ </div>
+
  <hr>
 
  <b>Products</b>
