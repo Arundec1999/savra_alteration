@@ -15,47 +15,6 @@ table{width:100%;border-collapse:collapse;margin-bottom:10px}
 th,td{border:1px solid #ccc;padding:6px;font-size:13px}
 th{background:#eee}
 button{width:100%;padding:10px;font-size:16px;background:black;color:white;border:none;border-radius:6px}
-
-/* ===== PRINT STYLING ===== */
-@media print {
-
-  html, body {
-    width: 80mm;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden;
-  }
-
-  body * {
-    visibility: hidden;
-  }
-
-  #printSlip, #printSlip * {
-    visibility: visible;
-  }
-
-  #printSlip {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 80mm;
-    padding: 4mm 3mm;
-    box-sizing: border-box;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    line-height: 1.35;
-    page-break-after: avoid;
-    break-after: avoid;
-  }
-
-  table {
-    page-break-inside: avoid;
-  }
-
-  hr {
-    margin: 4px 0;
-  }
-}
 </style>
 </head>
 
@@ -112,8 +71,8 @@ button{width:100%;padding:10px;font-size:16px;background:black;color:white;borde
 <button onclick="saveSlip()">SAVE & PRINT</button>
 </div>
 
-<!-- ===== PRINT RECEIPT ===== -->
-<div id="printSlip" style="display:none; padding:6px; white-space:normal;">
+<!-- ===== RECEIPT TEMPLATE (NOT PRINTED DIRECTLY) ===== -->
+<div id="printSlip" style="display:none; font-family:'Courier New', monospace; width:280px; line-height:1.4; font-size:14px;">
 
   <div style="text-align:center;">
     <div style="font-size:18px;font-weight:bold;">SAVRA</div>
@@ -123,7 +82,7 @@ button{width:100%;padding:10px;font-size:16px;background:black;color:white;borde
 
   <hr>
 
-  <div style="font-size:13px;">
+  <div>
     <b>Slip No:</b> <span id="pSlipNo"></span><br>
     <b>Bill No:</b> <span id="pBillNo"></span><br>
     <b>Date:</b> <span id="pDate"></span><br>
@@ -132,26 +91,26 @@ button{width:100%;padding:10px;font-size:16px;background:black;color:white;borde
 
   <hr>
 
-  <div style="font-size:13px;">
+  <div>
     <b>Customer:</b> <span id="pName"></span><br>
     <b>Mobile:</b> <span id="pMobile"></span>
   </div>
 
   <hr>
 
-  <div style="font-size:13px;">
+  <div>
     <b>TOP (कुर्ता)</b>
-    <table id="pTopTable" style="width:100%;"></table>
+    <table id="pTopTable"></table>
 
     <br>
 
     <b>BOTTOM (पैंट)</b>
-    <table id="pBottomTable" style="width:100%;"></table>
+    <table id="pBottomTable"></table>
   </div>
 
   <hr>
 
-  <div style="font-size:13px;">
+  <div>
     <b>Delivery:</b><br>
     Date: <span id="pDeliveryDate"></span><br>
     Time: <span id="pDeliveryTime"></span>
@@ -165,7 +124,7 @@ button{width:100%;padding:10px;font-size:16px;background:black;color:white;borde
     • Delivery after trial confirmation
   </div>
 
-  <div style="text-align:center;margin-top:8px;font-size:12px;">--- Thank You ---</div>
+  <div style="text-align:center;margin-top:8px;">--- Thank You ---</div>
 </div>
 
 <script>
@@ -237,16 +196,39 @@ async function saveSlip(){
     pMobile.innerText=mobile.value;
     pDeliveryDate.innerText=deliveryDate.value||"-";
     pDeliveryTime.innerText=deliveryTime.value||"-";
-
     pBranchAddress.innerText=b.address;
     pBranchContact.innerText="Contact: "+b.contact;
 
     pTopTable.innerHTML=Object.keys(topData).map(k=>`<tr><td>${k}</td><td style="text-align:right">${topData[k]}</td></tr>`).join("");
     pBottomTable.innerHTML=Object.keys(bottomData).map(k=>`<tr><td>${k}</td><td style="text-align:right">${bottomData[k]}</td></tr>`).join("");
 
-    printSlip.style.display="block";
-    window.print();
-    printSlip.style.display="none";
+    // POS-style receipt print
+    const receiptHTML = document.getElementById("printSlip").innerHTML;
+    const printWindow = window.open('', '', 'width=300,height=600');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Print Slip</title>
+          <style>
+            body { font-family:'Courier New', monospace; width:280px; margin:0; padding:6px; line-height:1.4; font-size:14px; }
+            hr { margin:4px 0; }
+            table { width:100%; }
+          </style>
+        </head>
+        <body>${receiptHTML}</body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.onload = function(){
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    };
+
+  } else {
+    alert("Save failed: "+data.message);
   }
 }
 </script>
