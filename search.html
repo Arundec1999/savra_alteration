@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Search Alteration Slip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;background:#f4f4f4;padding:10px}
+.card{max-width:500px;margin:auto;background:#fff;padding:15px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+input,button,select{width:100%;padding:8px;margin:6px 0}
+button{background:black;color:white;border:none;border-radius:6px}
+.result{background:#f9f9f9;padding:10px;margin-top:10px;border-radius:6px}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>Search Alteration Slip</h2>
+
+<input id="searchSlipNo" placeholder="Enter Slip Number">
+<button onclick="searchBySlip()">Search by Slip No</button>
+
+<input id="searchBillNo" placeholder="Enter Bill Number">
+<button onclick="searchByBill()">Search by Bill No</button>
+
+<input id="searchMobile" placeholder="Enter Customer Mobile">
+<button onclick="searchByMobile()">Search by Mobile</button>
+
+<div id="mobileResults"></div>
+<div id="slipDetails" class="result"></div>
+</div>
+
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
+
+async function searchBySlip(){
+ const res=await fetch(API_URL+`?action=searchSlip&slipNo=${searchSlipNo.value}`);
+ const d=await res.json();
+ showSlip(d);
+}
+
+async function searchByBill(){
+ const res=await fetch(API_URL+`?action=searchSlip&billNo=${searchBillNo.value}`);
+ const d=await res.json();
+ showSlip(d);
+}
+
+async function searchByMobile(){
+ const res=await fetch(API_URL+`?action=getSlipsByMobile&mobile=${searchMobile.value}`);
+ const d=await res.json();
+ mobileResults.innerHTML="";
+ if(d.slips.length===0){mobileResults.innerHTML="No slips found";return;}
+ d.slips.forEach(s=>{
+  mobileResults.innerHTML+=`<button onclick="loadSlip('${s.slipNo}')">${s.slipNo} | Bill: ${s.billNo} | Delivery: ${s.deliveryDate}</button>`;
+ });
+}
+
+async function loadSlip(slipNo){
+ const res=await fetch(API_URL+`?action=searchSlip&slipNo=${slipNo}`);
+ const d=await res.json();
+ showSlip(d);
+}
+
+function showSlip(d){
+ if(d.status!=="success"){slipDetails.innerHTML="Slip not found";return;}
+ slipDetails.innerHTML=`
+ <b>Slip No:</b> ${d.slipNo}<br>
+ <b>Name:</b> ${d.name}<br>
+ <b>Mobile:</b> ${d.mobile}<br>
+ <b>Bill No:</b> ${d.billNo}<br>
+ <b>Created:</b> ${new Date(d.createdDate).toLocaleString()}<br>
+ <b>Delivery:</b> ${d.deliveryDate} ${d.deliveryTime}<br><hr>
+ <b>Products:</b><br>${d.products.join("<br>")}<br><hr>
+ <b>Top Measurements:</b><br>${Object.entries(d.top).map(([k,v])=>k+": "+v).join("<br>")}<br><hr>
+ <b>Bottom Measurements:</b><br>${Object.entries(d.bottom).map(([k,v])=>k+": "+v).join("<br>")}
+ `;
+}
+</script>
+</body>
+</html>
