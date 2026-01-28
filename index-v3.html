@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Alteration Slip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{font-family:Arial;background:#f4f4f4;padding:10px}
+.card{max-width:480px;margin:auto;background:#fff;padding:14px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+h2,h3{text-align:center;margin:8px 0}
+label{font-size:14px;font-weight:bold}
+input,select{width:100%;padding:7px;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin-bottom:10px}
+th,td{border:1px solid #ccc;padding:6px;font-size:13px}
+th{background:#eee}
+button{width:100%;padding:10px;font-size:16px;background:black;color:white;border:none;border-radius:6px}
+
+/* PRINT STYLES */
+@media print {
+  body * { visibility:hidden; }
+  #printSlip, #printSlip * { visibility:visible; }
+  #printSlip { position:absolute; left:0; top:0; width:280px; font-family:monospace; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h2>ALTERATION SLIP</h2>
+
+<label>Branch</label>
+<select id="branch"></select>
+
+<label>Bill Prefix</label>
+<input id="billPrefix" readonly>
+
+<label>Bill Number *</label>
+<input id="billNo" type="number">
+
+<label>Alteration Slip No</label>
+<input id="altSlip" readonly>
+
+<hr>
+
+<h3>Customer</h3>
+<label>Mobile *</label>
+<input id="mobile" onblur="fetchCustomer()">
+
+<label>Name *</label>
+<input id="customer">
+
+<hr>
+
+<h3>TOP – कुर्ता</h3>
+<table id="topTable">
+<tr><th>Measurement</th><th>Value</th></tr>
+<tr data-key="Length"><td>Length</td><td><input></td></tr>
+<tr data-key="Chest"><td>Chest</td><td><input></td></tr>
+<tr data-key="Sleeve"><td>Sleeve</td><td><input></td></tr>
+</table>
+
+<h3>BOTTOM – पैंट</h3>
+<table id="bottomTable">
+<tr><th>Measurement</th><th>Value</th></tr>
+<tr data-key="Length"><td>Length</td><td><input></td></tr>
+<tr data-key="Waist"><td>Waist</td><td><input></td></tr>
+</table>
+
+<hr>
+
+<label>Delivery Date</label>
+<input id="deliveryDate" type="date">
+<label>Delivery Time</label>
+<input id="deliveryTime" type="time">
+
+<button onclick="saveSlip()">SAVE & PRINT</button>
+</div>
+
+<!-- ===== PRINT RECEIPT LAYOUT ===== -->
+<div id="printSlip" style="display:none;">
+
+  <div style="text-align:center;">
+    <h3 style="margin:4px 0;">SAVRA</h3>
+    <div style="font-size:12px;">
+      Showroom No. 1, Tonk Rd, Jaipur<br>
+      Contact: 8005675501, 9460192284
+    </div>
+  </div>
+
+  <hr>
+
+  <div style="font-size:12px;">
+    <b>Alteration Slip No:</b> <span id="pSlipNo"></span><br>
+    <b>Bill No:</b> <span id="pBillNo"></span><br>
+    <b>Date:</b> <span id="pDate"></span><br>
+    <b>Time:</b> <span id="pTime"></span>
+  </div>
+
+  <hr>
+
+  <div style="font-size:12px;">
+    <b>Customer:</b> <span id="pName"></span><br>
+    <b>Mobile:</b> <span id="pMobile"></span>
+  </div>
+
+  <hr>
+
+  <div style="font-size:12px;">
+    <b>TOP (कुर्ता)</b>
+    <table style="width:100%;" id="pTopTable"></table>
+
+    <br>
+
+    <b>BOTTOM (पैंट)</b>
+    <table style="width:100%;" id="pBottomTable"></table>
+  </div>
+
+  <hr>
+
+  <div style="font-size:11px;">
+    <b>Delivery Date:</b> <span id="pDeliveryDate"></span><br>
+    <b>Delivery Time:</b> <span id="pDeliveryTime"></span>
+  </div>
+
+  <hr>
+
+  <div style="font-size:10px;">
+    • Please bring this slip during delivery<br>
+    • Altered garments cannot be exchanged<br>
+    • Delivery after trial confirmation
+  </div>
+
+  <br>
+  <div style="text-align:center;font-size:12px;">--- Thank You ---</div>
+
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
+let branchMap = {};
+
+window.onload = async () => {
+  const res = await fetch(API_URL + "?action=getBranches");
+  const data = await res.json();
+  branch.innerHTML = `<option value="">Select Branch</option>`;
+  data.branches.forEach(b=>{
+    branchMap[b.name] = b.prefix;
+    branch.innerHTML += `<option value="${b.name}">${b.name}</option>`;
+  });
+};
+
+async function fetchCustomer(){
+  if(!mobile.value) return;
+  const res = await fetch(API_URL + "?action=getCustomer&mobile=" + mobile.value);
+  const data = await res.json();
+  if(data.found) customer.value = data.name;
+}
+
+function readTable(id){
+  let obj={};
+  document.querySelectorAll(`#${id} tr[data-key]`).forEach(r=>{
+    const v=r.querySelector("input").value.trim();
+    if(v) obj[r.dataset.key]=v;
+  });
+  return obj;
+}
+
+async function saveSlip(){
+  if(!branch.value||!billNo.value||!mobile.value||!customer.value){
+    alert("Fill all mandatory fields"); 
+    return;
+  }
+
+  const prefix = branchMap[branch.value];
+  billPrefix.value = prefix;
+
+  const url =
+    API_URL +
+    "?action=saveSlip" +
+    "&branch=" + encodeURIComponent(branch.value) +
+    "&billPrefix=" + encodeURIComponent(prefix) +
+    "&billNo=" + encodeURIComponent(billNo.value) +
+    "&mobile=" + encodeURIComponent(mobile.value) +
+    "&name=" + encodeURIComponent(customer.value);
+
+  const topData = readTable("topTable");
+  const bottomData = readTable("bottomTable");
+
+  const body =
+    "top=" + encodeURIComponent(JSON.stringify(topData)) +
+    "&bottom=" + encodeURIComponent(JSON.stringify(bottomData)) +
+    "&deliveryDate=" + encodeURIComponent(deliveryDate.value || "") +
+    "&deliveryTime=" + encodeURIComponent(deliveryTime.value || "");
+
+  const res = await fetch(url,{ method:"POST", body:body });
+  const data = JSON.parse(await res.text());
+
+  if(data.status==="success"){
+    altSlip.value=data.slipNo;
+
+    // Fill print slip
+    pSlipNo.innerText=data.slipNo;
+    pBillNo.innerText=billNo.value;
+    pDate.innerText=new Date().toLocaleDateString();
+    pTime.innerText=new Date().toLocaleTimeString();
+    pName.innerText=customer.value;
+    pMobile.innerText=mobile.value;
+    pDeliveryDate.innerText=deliveryDate.value||"-";
+    pDeliveryTime.innerText=deliveryTime.value||"-";
+
+    pTopTable.innerHTML=Object.keys(topData).map(k=>`<tr><td>${k}</td><td style="text-align:right">${topData[k]}</td></tr>`).join("");
+    pBottomTable.innerHTML=Object.keys(bottomData).map(k=>`<tr><td>${k}</td><td style="text-align:right">${bottomData[k]}</td></tr>`).join("");
+
+    document.getElementById("printSlip").style.display="block";
+    window.print();
+    document.getElementById("printSlip").style.display="none";
+  }else{
+    alert("Save failed: "+data.message);
+  }
+}
+</script>
+
+</body>
+</html>
