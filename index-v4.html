@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Alteration Slip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;background:#f4f4f4;padding:10px}
+.card{max-width:480px;margin:auto;background:#fff;padding:14px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+h2,h3{text-align:center;margin:8px 0}
+label{font-size:14px;font-weight:bold}
+input,select{width:100%;padding:7px;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin-bottom:10px}
+th,td{border:1px solid #ccc;padding:6px;font-size:13px}
+th{background:#eee}
+button{width:100%;padding:10px;font-size:16px;background:black;color:white;border:none;border-radius:6px}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>ALTERATION SLIP</h2>
+
+<label>Branch</label>
+<select id="branch"></select>
+
+<label>Bill Prefix</label>
+<input id="billPrefix" readonly>
+
+<label>Bill Number *</label>
+<input id="billNo" type="number">
+
+<label>Alteration Slip No</label>
+<input id="altSlip" readonly>
+
+<hr>
+
+<h3>Customer</h3>
+<label>Mobile *</label>
+<input id="mobile" onblur="fetchCustomer()">
+
+<label>Name *</label>
+<input id="customer">
+
+<hr>
+
+<h3>Products for Alteration</h3>
+<input id="barcodeInput" placeholder="Scan or Enter Barcode" onkeypress="handleBarcode(event)">
+<table id="productTable">
+<tr><th>Barcode</th><th>Remove</th></tr>
+</table>
+
+<hr>
+
+<h3>TOP – कुर्ता</h3>
+<table id="topTable">
+<tr><th>Measurement</th><th>Value</th></tr>
+<tr data-key="Length"><td>Length</td><td><input></td></tr>
+<tr data-key="Chest"><td>Chest</td><td><input></td></tr>
+<tr data-key="Sleeve"><td>Sleeve</td><td><input></td></tr>
+</table>
+
+<h3>BOTTOM – पैंट</h3>
+<table id="bottomTable">
+<tr><th>Measurement</th><th>Value</th></tr>
+<tr data-key="Length"><td>Length</td><td><input></td></tr>
+<tr data-key="Waist"><td>Waist</td><td><input></td></tr>
+</table>
+
+<hr>
+
+<label>Delivery Date</label>
+<input id="deliveryDate" type="date">
+<label>Delivery Time</label>
+<input id="deliveryTime" type="time">
+
+<button onclick="saveSlip()">SAVE & PRINT</button>
+</div>
+
+<!-- RECEIPT TEMPLATE -->
+<div id="printSlip" style="display:none; font-family:'Courier New', monospace; width:280px; line-height:1.4; font-size:14px;">
+<div style="text-align:center;font-size:18px;font-weight:bold;">SAVRA</div>
+<div id="pBranchAddress" style="font-size:12px;"></div>
+<div id="pBranchContact" style="font-size:12px;"></div>
+<hr>
+Slip: <span id="pSlipNo"></span><br>
+Bill: <span id="pBillNo"></span><br>
+Date: <span id="pDate"></span> <span id="pTime"></span>
+<hr>
+Customer: <span id="pName"></span><br>
+Mobile: <span id="pMobile"></span>
+<hr>
+<b>Products</b>
+<table id="pProducts"></table>
+<hr>
+<b>TOP</b>
+<table id="pTopTable"></table>
+<b>BOTTOM</b>
+<table id="pBottomTable"></table>
+<hr>
+Delivery: <span id="pDeliveryDate"></span> <span id="pDeliveryTime"></span>
+</div>
+
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
+let branchMap={},products=[];
+
+/* LOAD BRANCHES */
+window.onload=async()=>{
+ const res=await fetch(API_URL+"?action=getBranches");
+ const data=await res.json();
+ branch.innerHTML=`<option value="">Select Branch</option>`;
+ data.branches.forEach(b=>{
+  branchMap[b.name]=b;
+  branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;
+ });
+};
+
+/* BARCODE HANDLING */
+function handleBarcode(e){
+ if(e.key==="Enter"){
+  e.preventDefault();
+  const code=barcodeInput.value.trim();
+  if(!code) return;
+  products.push(code);
+  barcodeInput.value="";
+  renderProducts();
+ }
+}
+function renderProducts(){
+ productTable.innerHTML="<tr><th>Barcode</th><th>Remove</th></tr>";
+ products.forEach((p,i)=>{
+  productTable.innerHTML+=`<tr><td>${p}</td><td><button onclick="removeProduct(${i})">X</button></td></tr>`;
+ });
+}
+function removeProduct(i){products.splice(i,1);renderProducts();}
+
+/* FETCH CUSTOMER */
+async function fetchCustomer(){
+ if(!mobile.value)return;
+ const res=await fetch(API_URL+"?action=getCustomer&mobile="+mobile.value);
+ const d=await res.json();
+ if(d.found) customer.value=d.name;
+}
+
+/* READ MEASUREMENTS */
+function readTable(id){
+ let o={};
+ document.querySelectorAll(`#${id} tr[data-key]`).forEach(r=>{
+  const v=r.querySelector("input").value.trim();
+  if(v) o[r.dataset.key]=v;
+ });
+ return o;
+}
+
+/* SAVE SLIP */
+async function saveSlip(){
+ if(!branch.value||!billNo.value||!mobile.value||!customer.value){
+   alert("Fill all mandatory"); return;
+ }
+
+ const b=branchMap[branch.value];
+ billPrefix.value=b.prefix;
+
+ const topData = readTable("topTable");
+ const bottomData = readTable("bottomTable");
+
+ const url=API_URL+`?action=saveSlip&branch=${encodeURIComponent(branch.value)}&billPrefix=${b.prefix}&billNo=${billNo.value}&mobile=${mobile.value}&name=${encodeURIComponent(customer.value)}`;
+
+ const body=
+ "products="+encodeURIComponent(JSON.stringify(products))+
+ "&top="+encodeURIComponent(JSON.stringify(topData))+
+ "&bottom="+encodeURIComponent(JSON.stringify(bottomData))+
+ "&deliveryDate="+encodeURIComponent(deliveryDate.value||"")+
+ "&deliveryTime="+encodeURIComponent(deliveryTime.value||"");
+
+ const res=await fetch(url,{method:"POST",body:body});
+ const data=await res.json();
+
+ if(data.status==="success"){
+  altSlip.value=data.slipNo;
+
+  pSlipNo.innerText=data.slipNo;
+  pBillNo.innerText=billNo.value;
+  pDate.innerText=new Date().toLocaleDateString();
+  pTime.innerText=new Date().toLocaleTimeString();
+  pName.innerText=customer.value;
+  pMobile.innerText=mobile.value;
+  pDeliveryDate.innerText=deliveryDate.value;
+  pDeliveryTime.innerText=deliveryTime.value;
+  pBranchAddress.innerText=b.address;
+  pBranchContact.innerText="Contact: "+b.contact;
+
+  pProducts.innerHTML=products.map(p=>`<tr><td>${p}</td></tr>`).join("");
+  pTopTable.innerHTML=Object.entries(topData).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+  pBottomTable.innerHTML=Object.entries(bottomData).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+
+  const w=window.open('','','width=320,height=700');
+  w.document.write(`<html><body style="font-family:Courier New;width:280px;padding:6px;">${printSlip.innerHTML}</body></html>`);
+  w.document.close();
+  w.print();
+  w.close();
+ }
+}
+</script>
+</body>
+</html>
