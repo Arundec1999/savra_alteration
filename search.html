@@ -13,6 +13,9 @@ button{background:black;color:white;border:none;border-radius:6px}
 hr{margin:10px 0}
 h2{text-align:center}
 .smallBtn{width:auto;padding:4px 8px;font-size:12px;margin-left:6px}
+.locked{background:#eee}
+table{width:100%;border-collapse:collapse}
+td{padding:4px;font-size:13px}
 </style>
 </head>
 <body>
@@ -41,6 +44,9 @@ h2{text-align:center}
 <script>
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 let branchMap={}, currentProducts=[], currentSlip=null;
+
+const TOP_FIELDS=["Length","Chest","Sleeve"];
+const BOTTOM_FIELDS=["Length","Waist"];
 
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
@@ -99,26 +105,35 @@ function showSlip(d){
  <b>Created:</b> ${new Date(d.createdDate).toLocaleString()}<hr>
 
  <b>Delivery Date</b>
- <input type="date" id="editDeliveryDate" value="${d.deliveryDate||""}">
+ <input type="date" id="editDeliveryDate" value="${d.deliveryDate||""}" disabled class="locked">
  <b>Delivery Time</b>
- <input type="time" id="editDeliveryTime" value="${d.deliveryTime||""}"><hr>
+ <input type="time" id="editDeliveryTime" value="${d.deliveryTime||""}" disabled class="locked">
+ <button onclick="unlockDelivery()">Edit Delivery</button>
+ <hr>
 
  <b>Products</b>
  <div id="editProducts"></div>
  <input id="newBarcode" placeholder="Scan new barcode" onkeypress="addEditProduct(event)"><hr>
 
  <b>Top Measurements</b>
- <div id="editTop"></div><hr>
+ <table id="editTopTable"></table><hr>
 
  <b>Bottom Measurements</b>
- <div id="editBottom"></div><hr>
+ <table id="editBottomTable"></table><hr>
 
  <button onclick="updateSlip()">UPDATE SLIP</button>
  `;
 
  renderEditableProducts();
- renderEditableTable("editTop",d.top);
- renderEditableTable("editBottom",d.bottom);
+ renderMeasurementTable("editTopTable",TOP_FIELDS,d.top);
+ renderMeasurementTable("editBottomTable",BOTTOM_FIELDS,d.bottom);
+}
+
+function unlockDelivery(){
+ editDeliveryDate.disabled=false;
+ editDeliveryTime.disabled=false;
+ editDeliveryDate.classList.remove("locked");
+ editDeliveryTime.classList.remove("locked");
 }
 
 function renderEditableProducts(){
@@ -142,18 +157,19 @@ function removeEditProduct(i){
  renderEditableProducts();
 }
 
-function renderEditableTable(container,data){
+function renderMeasurementTable(container,fields,data){
  let html="";
- Object.entries(data).forEach(([k,v])=>{
-  html+=`${k}: <input value="${v}" data-key="${k}"><br>`;
+ fields.forEach(f=>{
+  html+=`<tr><td>${f}</td><td><input data-key="${f}" value="${data[f]||""}"></td></tr>`;
  });
  document.getElementById(container).innerHTML=html;
 }
 
 async function updateSlip(){
  const top={}, bottom={};
- document.querySelectorAll("#editTop input").forEach(i=>top[i.dataset.key]=i.value);
- document.querySelectorAll("#editBottom input").forEach(i=>bottom[i.dataset.key]=i.value);
+
+ document.querySelectorAll("#editTopTable input").forEach(i=>top[i.dataset.key]=i.value);
+ document.querySelectorAll("#editBottomTable input").forEach(i=>bottom[i.dataset.key]=i.value);
 
  const body=new URLSearchParams({
   action:"updateSlip",
