@@ -29,9 +29,7 @@ button.secondary{background:#666}
 <div class="card">
 <h2>Search Alteration Slip</h2>
 
-<!-- SEARCH SECTION -->
 <div class="section">
-
 <div class="toggleGroup">
 <button id="btnSlip" onclick="setMode('slip')">Slip No</button>
 <button id="btnBill" onclick="setMode('bill')">Bill No</button>
@@ -47,12 +45,10 @@ button.secondary{background:#666}
 <div id="searchResults"></div>
 </div>
 
-<!-- DETAILS SECTION -->
 <div class="section">
 <h3>Slip Details</h3>
 <div id="slipDetails" class="resultBox">Search a slip to view details</div>
 </div>
-
 </div>
 
 <script>
@@ -63,7 +59,6 @@ const TOP_FIELDS=["Length","Chest","Waist","Hip","Shoulder","Sleeve Length","Sle
 const BOTTOM_FIELDS=["Length","Waist","Hip","Thigh","Knee","Bottom"];
 const timeSlots=["11:00 AM","12:00 PM","01:00 PM","02:00 PM","03:00 PM","04:00 PM","05:00 PM","06:00 PM","07:00 PM","08:00 PM","09:00 PM"];
 
-/* LOAD BRANCHES */
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
  const data=await res.json();
@@ -75,7 +70,6 @@ window.onload=async()=>{
  setMode("slip");
 };
 
-/* MODE SWITCH */
 function setMode(m){
  mode=m;
  document.querySelectorAll(".toggleGroup button").forEach(b=>b.classList.remove("active"));
@@ -86,7 +80,6 @@ function setMode(m){
  if(m==="mobile") searchInputArea.innerHTML=`<input id="searchValue" placeholder="Enter Mobile Number">`;
 }
 
-/* SEARCH */
 async function performSearch(){
  if(!branch.value) return alert("Select branch");
  const val=document.getElementById("searchValue").value.trim();
@@ -102,19 +95,18 @@ async function performSearch(){
  if(mode==="bill"){
    const prefix=branchMap[branch.value];
    const res=await fetch(API_URL+`?action=getSlipsByBill&branch=${branch.value}&prefix=${prefix}&billNo=${val}`);
-   showList(await res.json(),"bill");
+   showList(await res.json());
  }
 
  if(mode==="mobile"){
    const res=await fetch(API_URL+`?action=getSlipsByMobile&branch=${branch.value}&mobile=${val}`);
-   showList(await res.json(),"mobile");
+   showList(await res.json());
  }
 
  document.getElementById("searchValue").value="";
 }
 
-/* SHOW LIST RESULTS */
-function showList(d,type){
+function showList(d){
  searchResults.innerHTML="";
  if(!d.slips || d.slips.length===0){
    searchResults.innerHTML="No slips found";
@@ -127,13 +119,11 @@ function showList(d,type){
  });
 }
 
-/* LOAD SLIP */
 async function loadSlip(slipNo){
  const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&slipNo=${slipNo}`);
  showSlip(await res.json());
 }
 
-/* VIEW MODE */
 function showSlip(d){
  if(d.status!=="success"){slipDetails.innerHTML="Slip not found";return;}
  currentSlip=d;
@@ -149,15 +139,15 @@ function showSlip(d){
  </div>
 
  <hr>
- <b>Products</b><br>${d.products.join("<br>") || "—"}
+ <b>Products</b><br>${d.products.length ? d.products.join("<br>") : "—"}
 
  <hr>
  <b>Top Measurements</b><br>
- ${Object.entries(d.top).map(([k,v])=>k+": "+v).join("<br>") || "—"}
+ ${Object.entries(d.top).filter(([k,v])=>v).map(([k,v])=>k+": "+v).join("<br>") || "—"}
 
  <hr>
  <b>Bottom Measurements</b><br>
- ${Object.entries(d.bottom).map(([k,v])=>k+": "+v).join("<br>") || "—"}
+ ${Object.entries(d.bottom).filter(([k,v])=>v).map(([k,v])=>k+": "+v).join("<br>") || "—"}
 
  <div class="actionBtns">
    <button onclick="enableEdit()">EDIT SLIP</button>
@@ -166,7 +156,6 @@ function showSlip(d){
  `;
 }
 
-/* EDIT MODE */
 function enableEdit(){
  slipDetails.innerHTML=`
  <b>Editing Slip: ${currentSlip.slipNo}</b><hr>
@@ -194,7 +183,6 @@ function enableEdit(){
  `;
 }
 
-/* SAVE */
 async function updateSlip(){
  const top={}, bottom={};
  document.querySelectorAll("input[data-key]").forEach(i=>{
@@ -219,7 +207,6 @@ async function updateSlip(){
  }
 }
 
-/* REPRINT */
 function reprintSlip(){
  const w=window.open('','','width=320,height=700');
  w.document.write(`<html><body style="font-family:Courier New;font-weight:700;font-size:15px;width:280px;padding:6px;">
@@ -229,14 +216,13 @@ function reprintSlip(){
  Customer: ${currentSlip.name}<br>
  Mobile: ${currentSlip.mobile}<br><hr>
  <b>PRODUCTS</b><br>${currentSlip.products.join("<br>")}<hr>
- <b>TOP</b><br>${Object.entries(currentSlip.top).map(([k,v])=>k+": "+v).join("<br>")}<br>
- <b>BOTTOM</b><br>${Object.entries(currentSlip.bottom).map(([k,v])=>k+": "+v).join("<br>")}<hr>
+ <b>TOP</b><br>${Object.entries(currentSlip.top).filter(([k,v])=>v).map(([k,v])=>k+": "+v).join("<br>")}<br>
+ <b>BOTTOM</b><br>${Object.entries(currentSlip.bottom).filter(([k,v])=>v).map(([k,v])=>k+": "+v).join("<br>")}<hr>
  Delivery: ${currentSlip.deliveryDate}<br>
  Time: ${currentSlip.deliveryTime}
  </body></html>`);
  w.document.close(); w.print(); w.close();
 }
 </script>
-
 </body>
 </html>
