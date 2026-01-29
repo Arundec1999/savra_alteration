@@ -209,6 +209,24 @@ function readTable(id){
  return o;
 }
 
+function resetForm(){
+  billNo.value = "";
+  billPreview.innerText = "—";
+  altSlip.value = "";
+  mobile.value = "";
+  customer.value = "";
+  deliveryDate.value = "";
+  deliveryTime.value = "";
+
+  // Clear products
+  products = [];
+  renderProducts();
+
+  // Clear measurements
+  document.querySelectorAll("#topTable input, #bottomTable input")
+    .forEach(i => i.value = "");
+}
+  
 /* Label maps for printing */
 function labelMap(fields){const m={};fields.forEach(([k,l])=>m[k]=l);return m;}
 const topLabels=labelMap(TOP_FIELDS);
