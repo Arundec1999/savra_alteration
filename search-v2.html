@@ -55,29 +55,21 @@ button.secondary{background:#666}
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 let branchMap={}, currentSlip=null, mode="slip";
 
-/* ✅ NEW SAFE MEASUREMENT STRUCTURE */
-const TOP_FIELDS = [
-["top_length","Length (लंबाई)"],
-["top_u_chest","Upper Chest (ऊपरी छाती)"],
-["top_chest","Chest (छाती)"],
-["top_l_chest","Lower Chest (निचली छाती)"],
-["top_waist","Waist (कमर)"],
-["top_hip","Hip (कूल्हा)"],
-["top_sleeve","Sleeve (आस्तीन)"],
-["top_armhole","Arm Hole (आर्म होल)"],
-["top_mori","Mori (मोरी)"],
-["top_bicep","Bicep (बाइसेप्स)"],
+/* SAFE MEASUREMENTS */
+const TOP_FIELDS=[
+["top_length","Length (लंबाई)"],["top_u_chest","Upper Chest (ऊपरी छाती)"],
+["top_chest","Chest (छाती)"],["top_l_chest","Lower Chest (निचली छाती)"],
+["top_waist","Waist (कमर)"],["top_hip","Hip (कूल्हा)"],
+["top_sleeve","Sleeve (आस्तीन)"],["top_armhole","Arm Hole (आर्म होल)"],
+["top_mori","Mori (मोरी)"],["top_bicep","Bicep (बाइसेप्स)"],
 ["top_elbow","Elbow (कोहनी)"]
 ];
-
-const BOTTOM_FIELDS = [
-["bottom_length","Length (लंबाई)"],
-["bottom_waist","Waist (कमर)"],
-["bottom_hip","Hip (कूल्हा)"],
-["bottom_mori","Mori (मोरी)"],
-["bottom_thigh","Thigh (जांघ)"],
-["bottom_knee","Knee (घुटना)"]
+const BOTTOM_FIELDS=[
+["bottom_length","Length (लंबाई)"],["bottom_waist","Waist (कमर)"],
+["bottom_hip","Hip (कूल्हा)"],["bottom_mori","Mori (मोरी)"],
+["bottom_thigh","Thigh (जांघ)"],["bottom_knee","Knee (घुटना)"]
 ];
+const timeSlots=["11:00 AM","12:00 PM","01:00 PM","02:00 PM","03:00 PM","04:00 PM","05:00 PM","06:00 PM","07:00 PM","08:00 PM","09:00 PM"];
 
 function labelMap(arr){let m={};arr.forEach(([k,l])=>m[k]=l);return m;}
 const topLabels=labelMap(TOP_FIELDS);
@@ -87,10 +79,7 @@ window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
  const data=await res.json();
  branch.innerHTML="<option value=''>Select Branch</option>";
- data.branches.forEach(b=>{
-   branchMap[b.name]=b.prefix;
-   branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;
- });
+ data.branches.forEach(b=>{branchMap[b.name]=b.prefix;branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;});
  setMode("slip");
 };
 
@@ -98,7 +87,6 @@ function setMode(m){
  mode=m;
  document.querySelectorAll(".toggleGroup button").forEach(b=>b.classList.remove("active"));
  document.getElementById("btn"+m.charAt(0).toUpperCase()+m.slice(1)).classList.add("active");
-
  if(m==="slip") searchInputArea.innerHTML=`<input id="searchValue" placeholder="Enter Slip Number (digits only)">`;
  if(m==="bill") searchInputArea.innerHTML=`<input id="searchValue" placeholder="Enter Bill Number">`;
  if(m==="mobile") searchInputArea.innerHTML=`<input id="searchValue" placeholder="Enter Mobile Number">`;
@@ -132,10 +120,7 @@ async function performSearch(){
 
 function showList(d){
  searchResults.innerHTML="";
- if(!d.slips || d.slips.length===0){
-   searchResults.innerHTML="No slips found";
-   return;
- }
+ if(!d.slips || d.slips.length===0){searchResults.innerHTML="No slips found";return;}
  d.slips.forEach(s=>{
    searchResults.innerHTML+=`<div class="listItem" onclick="loadSlip('${s.slipNo}')">
    • ${s.slipNo} | Bill ${s.billNo} | Delivery ${s.deliveryDate}
@@ -174,12 +159,57 @@ function showSlip(d){
  ${Object.entries(d.bottom).filter(([k,v])=>v).map(([k,v])=>`${bottomLabels[k]||k}: ${v}`).join("<br>") || "—"}
 
  <div class="actionBtns">
-   <button onclick="reprintSlip()">REPRINT</button>
+   <button onclick="enableEdit()">EDIT SLIP</button>
+   <button class="secondary" onclick="reprintSlip()">REPRINT</button>
  </div>
  `;
 }
 
-/* 🖨 PRINT — SAME FORMAT AS MAIN PAGE */
+function enableEdit(){
+ slipDetails.innerHTML=`
+ <b>Editing Slip: ${currentSlip.slipNo}</b><hr>
+
+ <label>Delivery Date</label>
+ <input type="date" id="editDeliveryDate" value="${currentSlip.deliveryDate||""}">
+
+ <label>Delivery Time</label>
+ <select id="editDeliveryTime">${timeSlots.map(t=>`<option ${t===currentSlip.deliveryTime?"selected":""}>${t}</option>`).join("")}</select>
+
+ <hr><b>Top Measurements</b><br>
+ ${TOP_FIELDS.map(([k,l])=>`${l}: <input data-key="${k}" value="${currentSlip.top[k]||""}"><br>`).join("")}
+
+ <hr><b>Bottom Measurements</b><br>
+ ${BOTTOM_FIELDS.map(([k,l])=>`${l}: <input data-key="${k}" value="${currentSlip.bottom[k]||""}"><br>`).join("")}
+
+ <div class="actionBtns">
+   <button onclick="updateSlip()">SAVE CHANGES</button>
+   <button class="secondary" onclick="showSlip(currentSlip)">CANCEL</button>
+ </div>
+ `;
+}
+
+async function updateSlip(){
+ const top={}, bottom={};
+ document.querySelectorAll("input[data-key]").forEach(i=>{
+   if(i.dataset.key.startsWith("top_")) top[i.dataset.key]=i.value;
+   else bottom[i.dataset.key]=i.value;
+ });
+
+ const body=new URLSearchParams({
+  action:"updateSlip",
+  slipNo:currentSlip.slipNo,
+  top:JSON.stringify(top),
+  bottom:JSON.stringify(bottom),
+  deliveryDate:editDeliveryDate.value,
+  deliveryTime:editDeliveryTime.value
+ });
+
+ const res=await fetch(API_URL,{method:"POST",body});
+ const d=await res.json();
+ if(d.status==="success"){alert("Slip updated");loadSlip(currentSlip.slipNo);}
+}
+
+/* PRINT SAME AS MAIN PAGE */
 function reprintSlip(){
  const w=window.open('','','width=320,height=700');
  w.document.write(`<html><body style="font-family:Courier New;font-weight:700;font-size:15px;width:280px;padding:6px;">
