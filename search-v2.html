@@ -55,9 +55,33 @@ button.secondary{background:#666}
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 let branchMap={}, currentSlip=null, mode="slip";
 
-const TOP_FIELDS=["Length","Chest","Waist","Hip","Shoulder","Sleeve Length","Sleeve Round","Armhole","Neck Depth Front","Neck Depth Back"];
-const BOTTOM_FIELDS=["Length","Waist","Hip","Thigh","Knee","Bottom"];
-const timeSlots=["11:00 AM","12:00 PM","01:00 PM","02:00 PM","03:00 PM","04:00 PM","05:00 PM","06:00 PM","07:00 PM","08:00 PM","09:00 PM"];
+/* ✅ NEW SAFE MEASUREMENT STRUCTURE */
+const TOP_FIELDS = [
+["top_length","Length (लंबाई)"],
+["top_u_chest","Upper Chest (ऊपरी छाती)"],
+["top_chest","Chest (छाती)"],
+["top_l_chest","Lower Chest (निचली छाती)"],
+["top_waist","Waist (कमर)"],
+["top_hip","Hip (कूल्हा)"],
+["top_sleeve","Sleeve (आस्तीन)"],
+["top_armhole","Arm Hole (आर्म होल)"],
+["top_mori","Mori (मोरी)"],
+["top_bicep","Bicep (बाइसेप्स)"],
+["top_elbow","Elbow (कोहनी)"]
+];
+
+const BOTTOM_FIELDS = [
+["bottom_length","Length (लंबाई)"],
+["bottom_waist","Waist (कमर)"],
+["bottom_hip","Hip (कूल्हा)"],
+["bottom_mori","Mori (मोरी)"],
+["bottom_thigh","Thigh (जांघ)"],
+["bottom_knee","Knee (घुटना)"]
+];
+
+function labelMap(arr){let m={};arr.forEach(([k,l])=>m[k]=l);return m;}
+const topLabels=labelMap(TOP_FIELDS);
+const bottomLabels=labelMap(BOTTOM_FIELDS);
 
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
@@ -143,81 +167,37 @@ function showSlip(d){
 
  <hr>
  <b>Top Measurements</b><br>
- ${Object.entries(d.top).filter(([k,v])=>v).map(([k,v])=>k+": "+v).join("<br>") || "—"}
+ ${Object.entries(d.top).filter(([k,v])=>v).map(([k,v])=>`${topLabels[k]||k}: ${v}`).join("<br>") || "—"}
 
  <hr>
  <b>Bottom Measurements</b><br>
- ${Object.entries(d.bottom).filter(([k,v])=>v).map(([k,v])=>k+": "+v).join("<br>") || "—"}
+ ${Object.entries(d.bottom).filter(([k,v])=>v).map(([k,v])=>`${bottomLabels[k]||k}: ${v}`).join("<br>") || "—"}
 
  <div class="actionBtns">
-   <button onclick="enableEdit()">EDIT SLIP</button>
-   <button class="secondary" onclick="reprintSlip()">REPRINT</button>
+   <button onclick="reprintSlip()">REPRINT</button>
  </div>
  `;
 }
 
-function enableEdit(){
- slipDetails.innerHTML=`
- <b>Editing Slip: ${currentSlip.slipNo}</b><hr>
-
- <label>Delivery Date</label>
- <input type="date" id="editDeliveryDate" value="${currentSlip.deliveryDate||""}">
-
- <label>Delivery Time</label>
- <select id="editDeliveryTime">
- ${timeSlots.map(t=>`<option ${t===currentSlip.deliveryTime?"selected":""}>${t}</option>`).join("")}
- </select>
-
- <hr>
- <b>Top Measurements</b><br>
- ${TOP_FIELDS.map(f=>`${f}: <input data-key="${f}" value="${currentSlip.top[f]||""}"><br>`).join("")}
-
- <hr>
- <b>Bottom Measurements</b><br>
- ${BOTTOM_FIELDS.map(f=>`${f}: <input data-key="${f}" value="${currentSlip.bottom[f]||""}"><br>`).join("")}
-
- <div class="actionBtns">
-   <button onclick="updateSlip()">SAVE CHANGES</button>
-   <button class="secondary" onclick="showSlip(currentSlip)">CANCEL</button>
- </div>
- `;
-}
-
-async function updateSlip(){
- const top={}, bottom={};
- document.querySelectorAll("input[data-key]").forEach(i=>{
-   if(TOP_FIELDS.includes(i.dataset.key)) top[i.dataset.key]=i.value;
-   else bottom[i.dataset.key]=i.value;
- });
-
- const body=new URLSearchParams({
-  action:"updateSlip",
-  slipNo:currentSlip.slipNo,
-  top:JSON.stringify(top),
-  bottom:JSON.stringify(bottom),
-  deliveryDate:editDeliveryDate.value,
-  deliveryTime:editDeliveryTime.value
- });
-
- const res=await fetch(API_URL,{method:"POST",body});
- const d=await res.json();
- if(d.status==="success"){
-   alert("Slip updated");
-   loadSlip(currentSlip.slipNo);
- }
-}
-
+/* 🖨 PRINT — SAME FORMAT AS MAIN PAGE */
 function reprintSlip(){
  const w=window.open('','','width=320,height=700');
  w.document.write(`<html><body style="font-family:Courier New;font-weight:700;font-size:15px;width:280px;padding:6px;">
- <div style="text-align:center;font-size:20px;font-weight:900;">SAVRA</div><hr>
+ <div style="text-align:center;font-size:20px;font-weight:900;">SAVRA</div>
+ <hr>
  Slip: ${currentSlip.slipNo}<br>
  Bill: ${currentSlip.billPrefix}-${currentSlip.billNo}<br>
+ Date: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}<br>
+ <hr>
  Customer: ${currentSlip.name}<br>
- Mobile: ${currentSlip.mobile}<br><hr>
- <b>PRODUCTS</b><br>${currentSlip.products.join("<br>")}<hr>
- <b>TOP</b><br>${Object.entries(currentSlip.top).filter(([k,v])=>v).map(([k,v])=>k+": "+v).join("<br>")}<br>
- <b>BOTTOM</b><br>${Object.entries(currentSlip.bottom).filter(([k,v])=>v).map(([k,v])=>k+": "+v).join("<br>")}<hr>
+ Mobile: ${currentSlip.mobile}<br>
+ <hr>
+ <b>PRODUCTS</b><br>${currentSlip.products.join("<br>")}
+ <hr>
+ <b>TOP</b><br>${Object.entries(currentSlip.top).filter(([k,v])=>v).map(([k,v])=>`${topLabels[k]||k}: ${v}`).join("<br>")}
+ <br>
+ <b>BOTTOM</b><br>${Object.entries(currentSlip.bottom).filter(([k,v])=>v).map(([k,v])=>`${bottomLabels[k]||k}: ${v}`).join("<br>")}
+ <hr>
  Delivery: ${currentSlip.deliveryDate}<br>
  Time: ${currentSlip.deliveryTime}
  </body></html>`);
