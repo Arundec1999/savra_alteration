@@ -4,16 +4,30 @@
 <meta charset="UTF-8">
 <title>Alteration Slip</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
-body{font-family:Arial;background:#f4f4f4;padding:10px}
-.card{max-width:480px;margin:auto;background:#fff;padding:14px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.12)}
-h2,h3{text-align:center;margin:8px 0}
-label{font-size:14px;font-weight:bold}
-input,select{width:100%;padding:7px;margin-bottom:8px}
-table{width:100%;border-collapse:collapse;margin-bottom:10px}
-th,td{border:1px solid #ccc;padding:6px;font-size:13px}
-th{background:#eee}
-button{width:100%;padding:10px;font-size:16px;background:black;color:white;border:none;border-radius:6px}
+body{
+  font-family:'Segoe UI',Arial;
+  background:#f2f3f7;
+  padding:12px;
+}
+.card{
+  max-width:520px;
+  margin:auto;
+  background:#fff;
+  padding:18px;
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,.08);
+}
+h2{margin:0 0 6px;text-align:center;}
+.section{margin-top:16px;padding-top:12px;border-top:1px solid #eee;}
+label{font-size:13px;font-weight:600;margin-bottom:4px;display:block;}
+input,select{width:100%;padding:9px;border-radius:6px;border:1px solid #ccc;margin-bottom:10px;font-size:14px;box-sizing:border-box;}
+table{width:100%;border-collapse:collapse;margin-top:6px;}
+th,td{border:1px solid #e0e0e0;padding:6px;font-size:13px;}
+th{background:#f7f7f7;text-align:left;}
+button{width:100%;padding:12px;font-size:15px;background:#111;color:white;border:none;border-radius:8px;margin-top:14px;}
+.small-note{font-size:12px;color:#777;margin-top:-6px;margin-bottom:8px;}
 </style>
 </head>
 <body>
@@ -21,67 +35,71 @@ button{width:100%;padding:10px;font-size:16px;background:black;color:white;borde
 <div class="card">
 <h2>ALTERATION SLIP</h2>
 
+<button onclick="goToSearch()" style="background:#444;margin-bottom:10px;">
+🔍 Search / Edit Slip
+</button>
+
+<div class="section">
 <label>Branch</label>
 <select id="branch"></select>
 
-<label>Bill Prefix</label>
-<input id="billPrefix" readonly>
-
-<label>Bill Number *</label>
-<input id="billNo" type="number">
+<label>Bill Number</label>
+<input id="billNo" type="number" placeholder="Enter bill number">
+<div class="small-note">Full Bill No: <b id="billPreview">—</b></div>
 
 <label>Alteration Slip No</label>
 <input id="altSlip" readonly>
+</div>
 
-<hr>
-
+<div class="section">
 <h3>Customer</h3>
-<label>Mobile *</label>
-<input id="mobile" onblur="fetchCustomer()">
-
-<label>Name *</label>
+<label>Mobile</label>
+<input id="mobile" type="tel">
+<label>Name</label>
 <input id="customer">
+</div>
 
-<hr>
-
+<div class="section">
 <h3>Products for Alteration</h3>
-<input id="barcodeInput" placeholder="Scan or Enter Barcode" onkeypress="handleBarcode(event)">
+<input id="barcodeInput" placeholder="Scan or Enter Barcode">
 <table id="productTable">
 <tr><th>Barcode</th><th>Remove</th></tr>
 </table>
+</div>
 
-<hr>
-
+<div class="section">
 <h3>TOP – कुर्ता</h3>
-<table id="topTable">
-<tr><th>Measurement</th><th>Value</th></tr>
-<tr data-key="Length"><td>Length</td><td><input></td></tr>
-<tr data-key="Chest"><td>Chest</td><td><input></td></tr>
-<tr data-key="Sleeve"><td>Sleeve</td><td><input></td></tr>
-</table>
+<table id="topTable"></table>
+</div>
 
+<div class="section">
 <h3>BOTTOM – पैंट</h3>
-<table id="bottomTable">
-<tr><th>Measurement</th><th>Value</th></tr>
-<tr data-key="Length"><td>Length</td><td><input></td></tr>
-<tr data-key="Waist"><td>Waist</td><td><input></td></tr>
-</table>
+<table id="bottomTable"></table>
+</div>
 
-<hr>
-
+<div class="section">
 <label>Delivery Date</label>
 <input id="deliveryDate" type="date">
+
 <label>Delivery Time</label>
-<input id="deliveryTime" type="time">
+<select id="deliveryTime"></select>
+</div>
 
 <button onclick="saveSlip()">SAVE & PRINT</button>
 </div>
 
 <!-- RECEIPT TEMPLATE -->
-<div id="printSlip" style="display:none; font-family:'Courier New', monospace; width:280px; line-height:1.4; font-size:14px;">
-<div style="text-align:center;font-size:18px;font-weight:bold;">SAVRA</div>
-<div id="pBranchAddress" style="font-size:12px;"></div>
-<div id="pBranchContact" style="font-size:12px;"></div>
+<div id="printSlip" style="display:none;
+  font-family:'Courier New',monospace;
+  font-weight:700;
+  width:280px;
+  font-size:15px;
+  line-height:1.5;
+  color:#000;">
+
+<div style="text-align:center;font-size:20px;font-weight:900;">SAVRA</div>
+<div id="pBranchAddress" style="font-size:13px;"></div>
+<div id="pBranchContact" style="font-size:13px;"></div>
 <hr>
 Slip: <span id="pSlipNo"></span><br>
 Bill: <span id="pBillNo"></span><br>
@@ -90,7 +108,7 @@ Date: <span id="pDate"></span> <span id="pTime"></span>
 Customer: <span id="pName"></span><br>
 Mobile: <span id="pMobile"></span>
 <hr>
-<b>Products</b>
+<b>PRODUCTS</b>
 <table id="pProducts"></table>
 <hr>
 <b>TOP</b>
@@ -98,91 +116,128 @@ Mobile: <span id="pMobile"></span>
 <b>BOTTOM</b>
 <table id="pBottomTable"></table>
 <hr>
-Delivery: <span id="pDeliveryDate"></span> <span id="pDeliveryTime"></span>
+Delivery: <span id="pDeliveryDate"></span><br>
+Time: <span id="pDeliveryTime"></span>
 </div>
 
 <script>
+function goToSearch(){ window.location.href="search.html"; }
+
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 let branchMap={},products=[];
 
-/* LOAD BRANCHES */
+/* ✅ NEW SAFE MEASUREMENT KEYS */
+const TOP_FIELDS = [
+["top_length","Length (लंबाई)"],
+["top_u_chest","Upper Chest (ऊपरी छाती)"],
+["top_chest","Chest (छाती)"],
+["top_l_chest","Lower Chest (निचली छाती)"],
+["top_waist","Waist (कमर)"],
+["top_hip","Hip (कूल्हा)"],
+["top_sleeve","Sleeve (आस्तीन)"],
+["top_armhole","Arm Hole (आर्म होल)"],
+["top_mori","Mori (मोरी)"],
+["top_bicep","Bicep (बाइसेप्स)"],
+["top_elbow","Elbow (कोहनी)"]
+];
+
+const BOTTOM_FIELDS = [
+["bottom_length","Length (लंबाई)"],
+["bottom_waist","Waist (कमर)"],
+["bottom_hip","Hip (कूल्हा)"],
+["bottom_mori","Mori (मोरी)"],
+["bottom_thigh","Thigh (जांघ)"],
+["bottom_knee","Knee (घुटना)"]
+];
+
+/* ✅ UPDATED TABLE BUILDER */
+function buildTable(id,fields){
+ let html="<tr><th>Measurement</th><th>Value</th></tr>";
+ fields.forEach(([key,label])=>{
+   html+=`<tr data-key="${key}"><td>${label}</td><td><input></td></tr>`;
+ });
+ document.getElementById(id).innerHTML=html;
+}
+buildTable("topTable",TOP_FIELDS);
+buildTable("bottomTable",BOTTOM_FIELDS);
+
+/* Time slots */
+const timeSlots=["11:00 AM","12:00 PM","01:00 PM","02:00 PM","03:00 PM","04:00 PM","05:00 PM","06:00 PM","07:00 PM","08:00 PM","09:00 PM"];
+deliveryTime.innerHTML='<option value="">Select Time</option>';
+timeSlots.forEach(t=>deliveryTime.innerHTML+=`<option value="${t}">${t}</option>`);
+
+/* Load branches */
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
  const data=await res.json();
  branch.innerHTML=`<option value="">Select Branch</option>`;
- data.branches.forEach(b=>{
-  branchMap[b.name]=b;
-  branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;
- });
+ data.branches.forEach(b=>{ branchMap[b.name]=b; branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`; });
 };
 
-/* BARCODE HANDLING */
-function handleBarcode(e){
- if(e.key==="Enter"){
-  e.preventDefault();
-  const code=barcodeInput.value.trim();
-  if(!code) return;
-  products.push(code);
-  barcodeInput.value="";
-  renderProducts();
+branch.onchange=billNo.oninput=()=>{
+ if(branch.value&&billNo.value){
+  billPreview.innerText=branchMap[branch.value].prefix+"-"+billNo.value;
  }
-}
-function renderProducts(){
- productTable.innerHTML="<tr><th>Barcode</th><th>Remove</th></tr>";
- products.forEach((p,i)=>{
-  productTable.innerHTML+=`<tr><td>${p}</td><td><button onclick="removeProduct(${i})">X</button></td></tr>`;
- });
-}
-function removeProduct(i){products.splice(i,1);renderProducts();}
+};
 
-/* FETCH CUSTOMER */
-async function fetchCustomer(){
+mobile.addEventListener("blur",async()=>{
  if(!mobile.value)return;
  const res=await fetch(API_URL+"?action=getCustomer&mobile="+mobile.value);
  const d=await res.json();
  if(d.found) customer.value=d.name;
+});
+
+barcodeInput.addEventListener("keypress",e=>{
+ if(e.key==="Enter"){
+  e.preventDefault();
+  products.push(barcodeInput.value.trim());
+  barcodeInput.value="";
+  renderProducts();
+ }
+});
+function renderProducts(){
+ productTable.innerHTML="<tr><th>Barcode</th><th>Remove</th></tr>";
+ products.forEach((p,i)=>productTable.innerHTML+=`<tr><td>${p}</td><td><button onclick="products.splice(${i},1);renderProducts()">X</button></td></tr>`);
 }
 
-/* READ MEASUREMENTS */
 function readTable(id){
  let o={};
  document.querySelectorAll(`#${id} tr[data-key]`).forEach(r=>{
   const v=r.querySelector("input").value.trim();
-  if(v) o[r.dataset.key]=v;
+  if(v)o[r.dataset.key]=v;
  });
  return o;
 }
 
-/* SAVE SLIP */
+/* Label maps for printing */
+function labelMap(fields){const m={};fields.forEach(([k,l])=>m[k]=l);return m;}
+const topLabels=labelMap(TOP_FIELDS);
+const bottomLabels=labelMap(BOTTOM_FIELDS);
+
 async function saveSlip(){
- if(!branch.value||!billNo.value||!mobile.value||!customer.value){
-   alert("Fill all mandatory"); return;
- }
-
+ if(!branch.value||!billNo.value||!mobile.value||!customer.value){alert("Fill all mandatory");return;}
  const b=branchMap[branch.value];
- billPrefix.value=b.prefix;
 
- const topData = readTable("topTable");
- const bottomData = readTable("bottomTable");
+ const topData=readTable("topTable");
+ const bottomData=readTable("bottomTable");
 
- const url=API_URL+`?action=saveSlip&branch=${encodeURIComponent(branch.value)}&billPrefix=${b.prefix}&billNo=${billNo.value}&mobile=${mobile.value}&name=${encodeURIComponent(customer.value)}`;
+ const url=API_URL+`?action=saveSlip&branch=${branch.value}&billPrefix=${b.prefix}&billNo=${billNo.value}&mobile=${mobile.value}&name=${encodeURIComponent(customer.value)}`;
 
- const urlWithData = url +
- "&products=" + encodeURIComponent(JSON.stringify(products)) +
- "&top=" + encodeURIComponent(JSON.stringify(topData)) +
- "&bottom=" + encodeURIComponent(JSON.stringify(bottomData)) +
- "&deliveryDate=" + encodeURIComponent(deliveryDate.value || "") +
- "&deliveryTime=" + encodeURIComponent(deliveryTime.value || "");
+ const urlWithData=url+
+ "&products="+encodeURIComponent(JSON.stringify(products))+
+ "&top="+encodeURIComponent(JSON.stringify(topData))+
+ "&bottom="+encodeURIComponent(JSON.stringify(bottomData))+
+ "&deliveryDate="+deliveryDate.value+
+ "&deliveryTime="+deliveryTime.value;
 
- const res = await fetch(urlWithData, { method: "POST" });
-
+ const res=await fetch(urlWithData,{method:"POST"});
  const data=await res.json();
 
  if(data.status==="success"){
   altSlip.value=data.slipNo;
 
   pSlipNo.innerText=data.slipNo;
-  pBillNo.innerText=billNo.value;
+  pBillNo.innerText=b.prefix+"-"+billNo.value;
   pDate.innerText=new Date().toLocaleDateString();
   pTime.innerText=new Date().toLocaleTimeString();
   pName.innerText=customer.value;
@@ -193,14 +248,12 @@ async function saveSlip(){
   pBranchContact.innerText="Contact: "+b.contact;
 
   pProducts.innerHTML=products.map(p=>`<tr><td>${p}</td></tr>`).join("");
-  pTopTable.innerHTML=Object.entries(topData).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
-  pBottomTable.innerHTML=Object.entries(bottomData).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+  pTopTable.innerHTML=Object.entries(topData).map(([k,v])=>`<tr><td>${topLabels[k]||k}</td><td>${v}</td></tr>`).join("");
+  pBottomTable.innerHTML=Object.entries(bottomData).map(([k,v])=>`<tr><td>${bottomLabels[k]||k}</td><td>${v}</td></tr>`).join("");
 
   const w=window.open('','','width=320,height=700');
-  w.document.write(`<html><body style="font-family:Courier New;width:280px;padding:6px;">${printSlip.innerHTML}</body></html>`);
-  w.document.close();
-  w.print();
-  w.close();
+  w.document.write(`<html><body style="font-family:Courier New;font-weight:700;font-size:15px;width:280px;padding:6px;">${printSlip.innerHTML}</body></html>`);
+  w.document.close();w.print();w.close();
  }
 }
 </script>
