@@ -6,19 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-  font-family:'Segoe UI',Arial;
-  background:#f2f3f7;
-  padding:12px;
-}
-.card{
-  max-width:520px;
-  margin:auto;
-  background:#fff;
-  padding:18px;
-  border-radius:12px;
-  box-shadow:0 8px 20px rgba(0,0,0,.08);
-}
+body{font-family:'Segoe UI',Arial;background:#f2f3f7;padding:12px;}
+.card{max-width:520px;margin:auto;background:#fff;padding:18px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.08);}
 h2{margin:0 0 6px;text-align:center;}
 .section{margin-top:16px;padding-top:12px;border-top:1px solid #eee;}
 label{font-size:13px;font-weight:600;margin-bottom:4px;display:block;}
@@ -35,9 +24,7 @@ button{width:100%;padding:12px;font-size:15px;background:#111;color:white;border
 <div class="card">
 <h2>ALTERATION SLIP</h2>
 
-<button onclick="goToSearch()" style="background:#444;margin-bottom:10px;">
-🔍 Search / Edit Slip
-</button>
+<button onclick="goToSearch()" style="background:#444;margin-bottom:10px;">🔍 Search / Edit Slip</button>
 
 <div class="section">
 <label>Branch</label>
@@ -80,7 +67,6 @@ button{width:100%;padding:12px;font-size:15px;background:#111;color:white;border
 <div class="section">
 <label>Delivery Date</label>
 <input id="deliveryDate" type="date">
-
 <label>Delivery Time</label>
 <select id="deliveryTime"></select>
 </div>
@@ -88,15 +74,8 @@ button{width:100%;padding:12px;font-size:15px;background:#111;color:white;border
 <button onclick="saveSlip()">SAVE & PRINT</button>
 </div>
 
-<!-- RECEIPT TEMPLATE -->
-<div id="printSlip" style="display:none;
-  font-family:'Courier New',monospace;
-  font-weight:700;
-  width:280px;
-  font-size:15px;
-  line-height:1.5;
-  color:#000;">
-
+<!-- PRINT TEMPLATE -->
+<div id="printSlip" style="display:none;font-family:'Courier New',monospace;font-weight:700;width:280px;font-size:15px;line-height:1.5;color:#000;">
 <div style="text-align:center;font-size:20px;font-weight:900;">SAVRA</div>
 <div id="pBranchAddress" style="font-size:13px;"></div>
 <div id="pBranchContact" style="font-size:13px;"></div>
@@ -121,64 +100,45 @@ Time: <span id="pDeliveryTime"></span>
 </div>
 
 <script>
-function goToSearch(){ window.location.href="search.html"; }
-
+function goToSearch(){window.location.href="search.html";}
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 let branchMap={},products=[];
 
-/* ✅ NEW SAFE MEASUREMENT KEYS */
-const TOP_FIELDS = [
-["top_length","Length (लंबाई)"],
-["top_u_chest","Upper Chest (ऊपरी छाती)"],
-["top_chest","Chest (छाती)"],
-["top_l_chest","Lower Chest (निचली छाती)"],
-["top_waist","Waist (कमर)"],
-["top_hip","Hip (कूल्हा)"],
-["top_sleeve","Sleeve (आस्तीन)"],
-["top_armhole","Arm Hole (आर्म होल)"],
-["top_mori","Mori (मोरी)"],
-["top_bicep","Bicep (बाइसेप्स)"],
+/* MEASUREMENTS */
+const TOP_FIELDS=[
+["top_length","Length (लंबाई)"],["top_u_chest","Upper Chest (ऊपरी छाती)"],
+["top_chest","Chest (छाती)"],["top_l_chest","Lower Chest (निचली छाती)"],
+["top_waist","Waist (कमर)"],["top_hip","Hip (कूल्हा)"],
+["top_sleeve","Sleeve (आस्तीन)"],["top_armhole","Arm Hole (आर्म होल)"],
+["top_mori","Mori (मोरी)"],["top_bicep","Bicep (बाइसेप्स)"],
 ["top_elbow","Elbow (कोहनी)"]
 ];
-
-const BOTTOM_FIELDS = [
-["bottom_length","Length (लंबाई)"],
-["bottom_waist","Waist (कमर)"],
-["bottom_hip","Hip (कूल्हा)"],
-["bottom_mori","Mori (मोरी)"],
-["bottom_thigh","Thigh (जांघ)"],
-["bottom_knee","Knee (घुटना)"]
+const BOTTOM_FIELDS=[
+["bottom_length","Length (लंबाई)"],["bottom_waist","Waist (कमर)"],
+["bottom_hip","Hip (कूल्हा)"],["bottom_mori","Mori (मोरी)"],
+["bottom_thigh","Thigh (जांघ)"],["bottom_knee","Knee (घुटना)"]
 ];
 
-/* ✅ UPDATED TABLE BUILDER */
 function buildTable(id,fields){
  let html="<tr><th>Measurement</th><th>Value</th></tr>";
- fields.forEach(([key,label])=>{
-   html+=`<tr data-key="${key}"><td>${label}</td><td><input></td></tr>`;
- });
+ fields.forEach(([k,l])=>html+=`<tr data-key="${k}"><td>${l}</td><td><input></td></tr>`);
  document.getElementById(id).innerHTML=html;
 }
 buildTable("topTable",TOP_FIELDS);
 buildTable("bottomTable",BOTTOM_FIELDS);
 
-/* Time slots */
 const timeSlots=["11:00 AM","12:00 PM","01:00 PM","02:00 PM","03:00 PM","04:00 PM","05:00 PM","06:00 PM","07:00 PM","08:00 PM","09:00 PM"];
 deliveryTime.innerHTML='<option value="">Select Time</option>';
 timeSlots.forEach(t=>deliveryTime.innerHTML+=`<option value="${t}">${t}</option>`);
 
-/* Load branches */
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
  const data=await res.json();
  branch.innerHTML=`<option value="">Select Branch</option>`;
- data.branches.forEach(b=>{ branchMap[b.name]=b; branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`; });
+ data.branches.forEach(b=>{branchMap[b.name]=b;branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;});
 };
 
-branch.onchange=billNo.oninput=()=>{
- if(branch.value&&billNo.value){
-  billPreview.innerText=branchMap[branch.value].prefix+"-"+billNo.value;
- }
-};
+branch.onchange=billNo.oninput=()=>{if(branch.value&&billNo.value){billPreview.innerText=branchMap[branch.value].prefix+"-"+billNo.value;}};
 
 mobile.addEventListener("blur",async()=>{
  if(!mobile.value)return;
@@ -188,72 +148,37 @@ mobile.addEventListener("blur",async()=>{
 });
 
 barcodeInput.addEventListener("keypress",e=>{
- if(e.key==="Enter"){
-  e.preventDefault();
-  products.push(barcodeInput.value.trim());
-  barcodeInput.value="";
-  renderProducts();
- }
+ if(e.key==="Enter"){e.preventDefault();products.push(barcodeInput.value.trim());barcodeInput.value="";renderProducts();}
 });
-function renderProducts(){
- productTable.innerHTML="<tr><th>Barcode</th><th>Remove</th></tr>";
- products.forEach((p,i)=>productTable.innerHTML+=`<tr><td>${p}</td><td><button onclick="products.splice(${i},1);renderProducts()">X</button></td></tr>`);
-}
+function renderProducts(){productTable.innerHTML="<tr><th>Barcode</th><th>Remove</th></tr>";products.forEach((p,i)=>productTable.innerHTML+=`<tr><td>${p}</td><td><button onclick="products.splice(${i},1);renderProducts()">X</button></td></tr>`);}
 
-function readTable(id){
- let o={};
- document.querySelectorAll(`#${id} tr[data-key]`).forEach(r=>{
-  const v=r.querySelector("input").value.trim();
-  if(v)o[r.dataset.key]=v;
- });
- return o;
-}
-
-function resetForm(){
-  billNo.value = "";
-  billPreview.innerText = "—";
-  altSlip.value = "";
-  mobile.value = "";
-  customer.value = "";
-  deliveryDate.value = "";
-  deliveryTime.value = "";
-
-  // Clear products
-  products = [];
-  renderProducts();
-
-  // Clear measurements
-  document.querySelectorAll("#topTable input, #bottomTable input")
-    .forEach(i => i.value = "");
-}
-  
-/* Label maps for printing */
-function labelMap(fields){const m={};fields.forEach(([k,l])=>m[k]=l);return m;}
+function readTable(id){let o={};document.querySelectorAll(`#${id} tr[data-key]`).forEach(r=>{const v=r.querySelector("input").value.trim();if(v)o[r.dataset.key]=v;});return o;}
+function labelMap(f){const m={};f.forEach(([k,l])=>m[k]=l);return m;}
 const topLabels=labelMap(TOP_FIELDS);
 const bottomLabels=labelMap(BOTTOM_FIELDS);
+
+/* 🧹 RESET FORM */
+function resetForm(){
+ billNo.value=""; billPreview.innerText="—"; altSlip.value="";
+ mobile.value=""; customer.value=""; deliveryDate.value=""; deliveryTime.value="";
+ products=[]; renderProducts();
+ document.querySelectorAll("#topTable input,#bottomTable input").forEach(i=>i.value="");
+}
 
 async function saveSlip(){
  if(!branch.value||!billNo.value||!mobile.value||!customer.value){alert("Fill all mandatory");return;}
  const b=branchMap[branch.value];
-
  const topData=readTable("topTable");
  const bottomData=readTable("bottomTable");
 
  const url=API_URL+`?action=saveSlip&branch=${branch.value}&billPrefix=${b.prefix}&billNo=${billNo.value}&mobile=${mobile.value}&name=${encodeURIComponent(customer.value)}`;
-
- const urlWithData=url+
- "&products="+encodeURIComponent(JSON.stringify(products))+
- "&top="+encodeURIComponent(JSON.stringify(topData))+
- "&bottom="+encodeURIComponent(JSON.stringify(bottomData))+
- "&deliveryDate="+deliveryDate.value+
- "&deliveryTime="+deliveryTime.value;
+ const urlWithData=url+"&products="+encodeURIComponent(JSON.stringify(products))+"&top="+encodeURIComponent(JSON.stringify(topData))+"&bottom="+encodeURIComponent(JSON.stringify(bottomData))+"&deliveryDate="+deliveryDate.value+"&deliveryTime="+deliveryTime.value;
 
  const res=await fetch(urlWithData,{method:"POST"});
  const data=await res.json();
 
  if(data.status==="success"){
   altSlip.value=data.slipNo;
-
   pSlipNo.innerText=data.slipNo;
   pBillNo.innerText=b.prefix+"-"+billNo.value;
   pDate.innerText=new Date().toLocaleDateString();
@@ -271,7 +196,9 @@ async function saveSlip(){
 
   const w=window.open('','','width=320,height=700');
   w.document.write(`<html><body style="font-family:Courier New;font-weight:700;font-size:15px;width:280px;padding:6px;">${printSlip.innerHTML}</body></html>`);
-  w.document.close();w.print();w.close();
+  w.document.close(); w.print(); w.close();
+
+  resetForm(); // 🧹 CLEAR AFTER SAVE
  }
 }
 </script>
