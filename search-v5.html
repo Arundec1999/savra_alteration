@@ -77,7 +77,7 @@ window.onload=async()=>{
  data.branches.forEach(b=>{branchMap[b.name]=b;branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;});
 };
 
-/* ✅ NEW: CLEAR RESULTS WHEN SEARCH TYPE CHANGES */
+/* NEW — clears slip list when search type changes */
 function clearResults(){
   results.innerHTML="";
 }
@@ -119,33 +119,30 @@ async function loadSlip(slipNo){
  renderDetails(false);
 }
 
-/* ===== REST OF YOUR ORIGINAL CODE UNCHANGED BELOW ===== */
-
-
 function renderDetails(edit){
- let html=`<div class="labelTitle">Slip Information</div>
- <b>Slip:</b> ${currentSlip.slipNo}<br>
+ let html=`<b>Slip:</b> ${currentSlip.slipNo}<br>
  <b>Bill:</b> ${currentSlip.billPrefix}-${currentSlip.billNo}<br>
  <b>Name:</b> ${currentSlip.name}<br>
  <b>Mobile:</b> ${currentSlip.mobile}<br>
- <b>Slip Date:</b> ${fDate(currentSlip.createdDate)} ${new Date(currentSlip.createdDate).toLocaleTimeString()}<br>`;
+ <b>Slip Date:</b> ${new Date(currentSlip.createdDate).toLocaleString()}<br>`;
 
- html+= edit
- ? `<label>Delivery Date</label><input type="date" id="editDate" value="${currentSlip.deliveryDate||""}">
-    <label>Delivery Time</label><select id="editTime">${timeSlots.map(t=>`<option ${t===currentSlip.deliveryTime?"selected":""}>${t}</option>`).join("")}</select><hr>`
- : `<b>Delivery:</b> ${fDate(currentSlip.deliveryDate)} ${currentSlip.deliveryTime||""}<hr>`;
+ if(edit){
+   html+=`<label>Delivery Date</label><input type="date" id="editDate" value="${currentSlip.deliveryDate||""}">
+   <label>Delivery Time</label><select id="editTime">${timeSlots.map(t=>`<option ${t===currentSlip.deliveryTime?"selected":""}>${t}</option>`).join("")}</select><hr>`;
+ } else {
+   html+=`<b>Delivery:</b> ${currentSlip.deliveryDate||"-"} ${currentSlip.deliveryTime||""}<hr>`;
+ }
 
- html+=`<div class="labelTitle">Products</div>`;
+ html+=`<b>Products</b><br>`;
  if(edit){
    html+=`<input id="newProd" placeholder="Add barcode"><button onclick="addProduct()">Add</button>`;
-   currentSlip.products.forEach((p,i)=>html+=`<div class="productTag">${p}<button onclick="removeProduct(${i})">✕</button></div>`);
+   currentSlip.products.forEach((p,i)=>{html+=`${p} <button onclick="removeProduct(${i})">X</button><br>`});
  } else {
    html+=currentSlip.products.join("<br>")||"—";
  }
 
  function table(fields,data,type){
-   let t=`<div class="labelTitle">${type==="top"?"TOP – कुर्ती":"BOTTOM – पैंट"}</div>
-   <table class="measureTable"><tr><th>Measurement</th><th>Value</th></tr>`;
+   let t=`<table class="measureTable"><tr><th>Measurement</th><th>Value</th></tr>`;
    fields.forEach(([k,l])=>{
      if(!edit && !data[k]) return;
      t+=`<tr><td>${l}</td><td>${edit?`<input data-${type}="${k}" value="${data[k]||""}">`:data[k]||""}</td></tr>`;
@@ -153,12 +150,14 @@ function renderDetails(edit){
    return t+"</table>";
  }
 
- html+=table(TOP_FIELDS,currentSlip.top,"top");
- html+=table(BOTTOM_FIELDS,currentSlip.bottom,"bottom");
+ html+=`<hr><b>TOP – कुर्ती</b>`+table(TOP_FIELDS,currentSlip.top,"top");
+ html+=`<b>BOTTOM – पैंट</b>`+table(BOTTOM_FIELDS,currentSlip.bottom,"bottom");
 
- html+= edit
- ? `<div class="actionBtns"><button onclick="saveEdit()">Save</button><button class="secondary" onclick="renderDetails(false)">Cancel</button></div>`
- : `<div class="actionBtns"><button onclick="renderDetails(true)">Edit</button><button class="secondary" onclick="reprint()">Reprint</button></div>`;
+ if(edit){
+   html+=`<div class="actionBtns"><button onclick="saveEdit()">Save</button><button class="secondary" onclick="renderDetails(false)">Cancel</button></div>`;
+ } else {
+   html+=`<div class="actionBtns"><button onclick="renderDetails(true)">Edit</button><button class="secondary" onclick="reprint()">Reprint</button></div>`;
+ }
 
  details.innerHTML=html;
 }
@@ -188,7 +187,6 @@ async function saveEdit(){
 }
 
 function reprint(){
- const b=branchMap[branch.value];
  const w=window.open('','','width=320,height=700');
  const row=(l,v)=>v?`<tr><td>${l}</td><td style="text-align:right">${v}</td></tr>`:"";
 
