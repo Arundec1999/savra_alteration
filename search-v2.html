@@ -211,28 +211,132 @@ async function updateSlip(){
 
 /* PRINT SAME AS MAIN PAGE */
 function reprintSlip(){
- const w=window.open('','','width=320,height=700');
- w.document.write(`<html><body style="font-family:Courier New;font-weight:700;font-size:15px;width:280px;padding:6px;">
- <div style="text-align:center;font-size:20px;font-weight:900;">SAVRA</div>
- <hr>
- Slip: ${currentSlip.slipNo}<br>
- Bill: ${currentSlip.billPrefix}-${currentSlip.billNo}<br>
- Date: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}<br>
- <hr>
- Customer: ${currentSlip.name}<br>
- Mobile: ${currentSlip.mobile}<br>
- <hr>
- <b>PRODUCTS</b><br>${currentSlip.products.join("<br>")}
- <hr>
- <b>TOP</b><br>${Object.entries(currentSlip.top).filter(([k,v])=>v).map(([k,v])=>`${topLabels[k]||k}: ${v}`).join("<br>")}
- <br>
- <b>BOTTOM</b><br>${Object.entries(currentSlip.bottom).filter(([k,v])=>v).map(([k,v])=>`${bottomLabels[k]||k}: ${v}`).join("<br>")}
- <hr>
- Delivery: ${currentSlip.deliveryDate}<br>
- Time: ${currentSlip.deliveryTime}
- </body></html>`);
- w.document.close(); w.print(); w.close();
+  const w = window.open('', '', 'width=320,height=700');
+
+  w.document.write(`
+  <html>
+  <head>
+  <style>
+    body{
+      width:280px;
+      padding:10px;
+      color:#000;
+      font-family:Arial, Helvetica, sans-serif;
+    }
+
+    .shop-name{
+      font-family:'Arial Black', Arial, sans-serif;
+      font-size:24px;
+      text-align:center;
+      font-weight:900;
+      letter-spacing:1px;
+    }
+
+    .sub-text{
+      text-align:center;
+      font-size:14px;
+      font-weight:700;
+      font-family:Verdana, sans-serif;
+    }
+
+    .section-title{
+      font-family:'Arial Black', Arial, sans-serif;
+      font-size:17px;
+      margin-top:10px;
+      font-weight:900;
+    }
+
+    .row{
+      display:flex;
+      justify-content:space-between;
+      font-size:16px;
+      font-weight:700;
+      font-family:Verdana, sans-serif;
+      margin:2px 0;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:16px;
+      font-weight:700;
+      font-family:Verdana, sans-serif;
+      margin-top:4px;
+    }
+
+    td{
+      padding:3px 0;
+    }
+
+    .divider{
+      border-top:2px dashed #000;
+      margin:8px 0;
+    }
+
+    .footer{
+      text-align:center;
+      font-size:14px;
+      font-family:Verdana, sans-serif;
+      font-weight:700;
+      margin-top:8px;
+    }
+  </style>
+  </head>
+  <body>
+
+    <div class="shop-name">SAVRA</div>
+    <div class="sub-text">${branch.value}</div>
+
+    <div class="divider"></div>
+
+    <div class="row"><span>Slip No</span><span>${currentSlip.slipNo}</span></div>
+    <div class="row"><span>Bill No</span><span>${currentSlip.billPrefix}-${currentSlip.billNo}</span></div>
+    <div class="row"><span>Date</span><span>${new Date().toLocaleDateString()}</span></div>
+    <div class="row"><span>Time</span><span>${new Date().toLocaleTimeString()}</span></div>
+
+    <div class="divider"></div>
+
+    <div class="section-title">Customer</div>
+    <div class="row"><span>Name</span><span>${currentSlip.name}</span></div>
+    <div class="row"><span>Mobile</span><span>${currentSlip.mobile}</span></div>
+
+    <div class="divider"></div>
+
+    <div class="section-title">Products</div>
+    <table>
+      ${currentSlip.products.map(p=>`<tr><td>${p}</td></tr>`).join("") || "<tr><td>—</td></tr>"}
+    </table>
+
+    <div class="divider"></div>
+
+    <div class="section-title">TOP Measurements</div>
+    <table>
+      ${Object.entries(currentSlip.top).filter(([k,v])=>v).map(([k,v])=>`<tr><td>${topLabels[k]||k}</td><td style="text-align:right">${v}</td></tr>`).join("") || "<tr><td>—</td></tr>"}
+    </table>
+
+    <div class="section-title">BOTTOM Measurements</div>
+    <table>
+      ${Object.entries(currentSlip.bottom).filter(([k,v])=>v).map(([k,v])=>`<tr><td>${bottomLabels[k]||k}</td><td style="text-align:right">${v}</td></tr>`).join("") || "<tr><td>—</td></tr>"}
+    </table>
+
+    <div class="divider"></div>
+
+    <div class="section-title">Delivery</div>
+    <div class="row"><span>Date</span><span>${currentSlip.deliveryDate || "-"}</span></div>
+    <div class="row"><span>Time</span><span>${currentSlip.deliveryTime || "-"}</span></div>
+
+    <div class="divider"></div>
+    <div class="footer">Thank You • Visit Again</div>
+
+  </body>
+  </html>
+  `);
+
+  w.document.close();
+  w.print();
+  w.close();
 }
+
 </script>
 </body>
 </html>
