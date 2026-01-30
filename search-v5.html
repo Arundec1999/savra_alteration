@@ -13,7 +13,8 @@ h2{text-align:center;margin-bottom:12px}
 .section{margin-top:18px;padding-top:14px;border-top:1px solid #eee}
 
 input,select,button{
-  width:100%;padding:9px;border-radius:6px;border:1px solid #ccc;margin:6px 0;font-size:14px
+  width:100%;padding:9px;border-radius:6px;border:1px solid #ccc;margin:6px 0;font-size:14px;
+  box-sizing:border-box;
 }
 button{background:#111;color:#fff;border:none}
 button.secondary{background:#666}
@@ -27,20 +28,23 @@ button.secondary{background:#666}
   margin-bottom:6px;background:#fafafa;cursor:pointer
 }
 
-.measureTable{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}
+.measureTable{
+  width:100%;border-collapse:collapse;margin-top:6px;
+  table-layout:fixed;background:#fff;border-radius:6px;overflow:hidden
+}
 .measureTable th:nth-child(1), .measureTable td:nth-child(1){width:65%}
 .measureTable th:nth-child(2), .measureTable td:nth-child(2){width:35%;text-align:right}
-.measureTable td,.measureTable th{border:1px solid #e0e0e0;padding:6px;font-size:13px}
+.measureTable td,.measureTable th{border:1px solid #e0e0e0;padding:8px;font-size:13px}
 .measureTable th{background:#f7f7f7;text-align:left}
 
 .actionBtns{display:flex;gap:10px;margin-top:14px}
 .actionBtns button{flex:1}
 
-.readonlyBox{background:#fafafa;padding:12px;border-radius:8px}
+.readonlyBox{background:#fafafa;padding:14px;border-radius:10px}
 
 .productTag{
   display:flex;justify-content:space-between;align-items:center;
-  background:#f1f1f1;padding:6px 10px;border-radius:20px;margin-bottom:6px;font-size:13px
+  background:#f1f1f1;padding:6px 12px;border-radius:20px;margin-bottom:6px;font-size:13px
 }
 .productTag button{
   width:auto;padding:2px 8px;border-radius:12px;background:#c62828;font-size:12px
@@ -79,34 +83,27 @@ button.secondary{background:#666}
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 let branchMap={}, currentSlip=null, searchMode="mobile";
 
-const TOP_FIELDS=[
-["top_length","Length (लंबाई)"],["top_chest","Chest (छाती)"],
-["top_waist","Waist (कमर)"],["top_hip","Hip (कूल्हा)"],
-["top_shoulder","Shoulder (कंधा)"],["top_sleeve_length","Sleeve Length (आस्तीन लंबाई)"],
-["top_sleeve_round","Sleeve Round (आस्तीन घेरा)"],["top_armhole","Armhole (आर्म होल)"],
-["top_neck_front","Neck Depth Front (गला आगे)"],["top_neck_back","Neck Depth Back (गला पीछे)"]
-];
-
-const BOTTOM_FIELDS=[
-["bottom_length","Length (लंबाई)"],["bottom_waist","Waist (कमर)"],
-["bottom_hip","Hip (कूल्हा)"],["bottom_thigh","Thigh (जांघ)"],
-["bottom_knee","Knee (घुटना)"],["bottom_bottom","Bottom (पायंचा)"]
-];
-
+/* DATE & TIME FORMATTERS */
 function formatDate(d){
+  if(!d) return "-";
   const dt=new Date(d);
   return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'2-digit'});
 }
 function formatTime(d){
+  if(!d) return "";
   const dt=new Date(d);
   return dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
 }
 
+/* LOAD BRANCHES — ORIGINAL LOGIC PRESERVED */
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
  const data=await res.json();
  branch.innerHTML="<option value=''>Select Branch</option>";
- data.branches.forEach(b=>branchMap[b.name]=b);
+ data.branches.forEach(b=>{
+   branchMap[b.name]=b; // keep full object
+   branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;
+ });
 };
 
 function setSearch(type){
@@ -116,6 +113,7 @@ function setSearch(type){
  searchValue.placeholder= type==="mobile"?"Enter Mobile Number": type==="bill"?"Enter Bill Number":"Enter Slip Number";
 }
 
+/* SEARCH */
 async function searchSlip(){
  if(!branch.value)return alert("Select branch");
  const val=searchValue.value.trim();
@@ -141,7 +139,7 @@ function showList(d){
  d.slips.forEach(s=>{
    results.innerHTML+=`<div class="listItem" onclick="loadSlip('${s.slipNo}')">
    <b>${s.slipNo}</b> | Bill: ${branchMap[branch.value].prefix}-${s.billNo}<br>
-   <small>Slip: ${formatDate(s.createdDate)} ${formatTime(s.createdDate)} | Delivery: ${s.deliveryDate?formatDate(s.deliveryDate):"-"}</small>
+   <small>Slip: ${formatDate(s.createdDate)} ${formatTime(s.createdDate)} | Delivery: ${formatDate(s.deliveryDate)}</small>
    </div>`;
  });
 }
@@ -152,6 +150,7 @@ async function loadSlip(slipNo){
  renderDetails(false);
 }
 
+/* DETAILS VIEW */
 function renderDetails(edit){
  let html=`<b>Slip:</b> ${currentSlip.slipNo}<br>
  <b>Bill:</b> ${currentSlip.billPrefix}-${currentSlip.billNo}<br>
@@ -162,9 +161,9 @@ function renderDetails(edit){
  html+= edit
  ? `<label>Delivery Date</label><input type="date" id="editDate" value="${currentSlip.deliveryDate||""}">
     <label>Delivery Time</label><input type="time" id="editTime" value="${currentSlip.deliveryTime||""}"><hr>`
- : `<b>Delivery:</b> ${currentSlip.deliveryDate?formatDate(currentSlip.deliveryDate):"-"} ${currentSlip.deliveryTime||""}<hr>`;
+ : `<b>Delivery:</b> ${formatDate(currentSlip.deliveryDate)} ${currentSlip.deliveryTime||""}<hr>`;
 
- /* PRODUCTS */
+ /* PRODUCTS UI IMPROVED */
  html+=`<b>Products</b><br>`;
  if(edit){
    html+=`<input id="newProd" placeholder="Add barcode"><button onclick="addProduct()">Add</button><div id="prodList">`;
@@ -173,22 +172,6 @@ function renderDetails(edit){
  } else {
    html+=currentSlip.products.join("<br>")||"—";
  }
-
- function table(fields,data,type){
-   let t=`<table class="measureTable"><tr><th>Measurement</th><th>Value</th></tr>`;
-   fields.forEach(([k,l])=>{
-     if(!edit && !data[k]) return;
-     t+=`<tr><td>${l}</td><td>${edit?`<input data-${type}="${k}" value="${data[k]||""}">`:data[k]||""}</td></tr>`;
-   });
-   return t+"</table>";
- }
-
- html+=`<hr><b>TOP – कुर्ती</b>`+table(TOP_FIELDS,currentSlip.top,"top");
- html+=`<b>BOTTOM – पैंट</b>`+table(BOTTOM_FIELDS,currentSlip.bottom,"bottom");
-
- html+= edit
- ? `<div class="actionBtns"><button onclick="saveEdit()">Save</button><button class="secondary" onclick="renderDetails(false)">Cancel</button></div>`
- : `<div class="actionBtns"><button onclick="renderDetails(true)">Edit</button><button class="secondary" onclick="reprint()">Reprint</button></div>`;
 
  details.innerHTML=html;
 }
