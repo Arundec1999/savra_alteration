@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Search & Edit Slip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  font-family:'Segoe UI',Arial;
+  background:#f2f3f7;
+  padding:12px;
+  margin:0;
+}
+
+.card{
+  max-width:760px;
+  margin:auto;
+  background:#fff;
+  padding:22px;
+  border-radius:16px;
+  box-shadow:0 12px 30px rgba(0,0,0,.08)
+}
+
+h2{
+  text-align:center;
+  margin-bottom:18px;
+  font-size:22px;
+}
+
+.section{
+  margin-top:24px;
+  padding-top:18px;
+  border-top:1px solid #eee
+}
+
+label{
+  font-weight:600;
+  font-size:13px;
+  color:#444;
+  margin-top:6px;
+  display:block;
+}
+
+input,select{
+  width:100%;
+  padding:11px;
+  border-radius:8px;
+  border:1px solid #d0d0d0;
+  margin:6px 0 10px 0;
+  font-size:14px;
+  box-sizing:border-box;
+  transition:.2s;
+}
+
+input:focus,select:focus{
+  outline:none;
+  border-color:#111;
+  box-shadow:0 0 0 2px rgba(0,0,0,.05);
+}
+
+button{
+  width:100%;
+  padding:12px;
+  border-radius:8px;
+  border:none;
+  font-weight:600;
+  font-size:14px;
+  cursor:pointer;
+  transition:.2s;
+}
+
+button:hover{opacity:.92}
+button:active{transform:scale(.98)}
+
+button.primary{background:#111;color:#fff}
+button.secondary{background:#666;color:#fff}
+
+.listItem{
+  padding:14px;
+  border-radius:10px;
+  background:#fafafa;
+  border:1px solid #e6e6e6;
+  margin-bottom:10px;
+  cursor:pointer;
+  transition:.2s
+}
+.listItem:hover{
+  background:#f1f1f1;
+  transform:translateY(-1px)
+}
+
+.measureTable{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+  table-layout:fixed;
+  border-radius:10px;
+  overflow:hidden
+}
+.measureTable th:nth-child(1), .measureTable td:nth-child(1){width:65%}
+.measureTable th:nth-child(2), .measureTable td:nth-child(2){width:35%;text-align:right}
+.measureTable td,.measureTable th{
+  border:1px solid #e0e0e0;
+  padding:9px;
+  font-size:13px
+}
+.measureTable th{
+  background:#f7f7f7;
+  text-align:left;
+  font-weight:700
+}
+
+.actionBtns{
+  display:flex;
+  gap:12px;
+  margin-top:18px
+}
+.actionBtns button{flex:1}
+
+.readonlyBox{
+  background:#fafafa;
+  padding:16px;
+  border-radius:12px;
+  border:1px solid #eee
+}
+
+.productTag{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#f1f1f1;
+  padding:7px 12px;
+  border-radius:20px;
+  margin-bottom:7px;
+  font-size:13px
+}
+.productTag button{
+  width:auto;
+  padding:3px 9px;
+  border-radius:12px;
+  background:#c62828;
+  font-size:12px
+}
+
+.labelTitle{
+  font-weight:700;
+  margin-top:14px;
+  margin-bottom:6px;
+  font-size:14px;
+  color:#222
+}
+
+#results{
+  margin-top:10px
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>Search Alteration Slip</h2>
+
+<div class="section">
+<label>Branch</label>
+<select id="branch"></select>
+
+<label>Search By</label>
+<select id="searchType">
+  <option value="slip">Slip Number</option>
+  <option value="bill">Bill Number</option>
+  <option value="mobile">Mobile</option>
+</select>
+
+<input id="searchValue" placeholder="Enter number">
+<button class="primary" onclick="searchSlip()">Search Slip</button>
+
+<div id="results"></div>
+</div>
+
+<div class="section">
+<h3>Slip Details</h3>
+<div id="details" class="readonlyBox">No slip loaded</div>
+</div>
+</div>
+
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
+let branchMap={}, currentSlip=null;
+
+const timeSlots=["11:00 AM","12:00 PM","01:00 PM","02:00 PM","03:00 PM","04:00 PM","05:00 PM","06:00 PM","07:00 PM","08:00 PM","09:00 PM"];
+
+const TOP_FIELDS=[
+["top_length","Length (लंबाई)"],["top_chest","Chest (छाती)"],
+["top_waist","Waist (कमर)"],["top_hip","Hip (कूल्हा)"],
+["top_shoulder","Shoulder (कंधा)"],["top_sleeve_length","Sleeve Length (आस्तीन लंबाई)"],
+["top_sleeve_round","Sleeve Round (आस्तीन घेरा)"],["top_armhole","Armhole (आर्म होल)"],
+["top_neck_front","Neck Depth Front (गला आगे)"],["top_neck_back","Neck Depth Back (गला पीछे)"]
+];
+
+const BOTTOM_FIELDS=[
+["bottom_length","Length (लंबाई)"],["bottom_waist","Waist (कमर)"],
+["bottom_hip","Hip (कूल्हा)"],["bottom_thigh","Thigh (जांघ)"],
+["bottom_knee","Knee (घुटना)"],["bottom_bottom","Bottom (पायंचा)"]
+];
+
+function fDate(d){if(!d)return"-";let x=new Date(d);return x.toLocaleDateString('en-GB');}
+function fTime(d){if(!d)return"";let x=new Date("1970-01-01T"+d);return x.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
+
+window.onload=async()=>{
+ const res=await fetch(API_URL+"?action=getBranches");
+ const data=await res.json();
+ branch.innerHTML="<option value=''>Select Branch</option>";
+ data.branches.forEach(b=>{branchMap[b.name]=b;branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;});
+};
+
+async function searchSlip(){
+ if(!branch.value)return alert("Select branch");
+ const type=searchType.value;
+ const val=searchValue.value.trim();
+ if(!val)return;
+
+ if(type==="slip"){
+   const slip=`ALT-${branchMap[branch.value].prefix}-${String(val).padStart(6,'0')}`;
+   loadSlip(slip);
+ }
+ if(type==="bill"){
+   const res=await fetch(API_URL+`?action=getSlipsByBill&branch=${branch.value}&prefix=${branchMap[branch.value].prefix}&billNo=${val}`);
+   showList(await res.json());
+ }
+ if(type==="mobile"){
+   const res=await fetch(API_URL+`?action=getSlipsByMobile&branch=${branch.value}&mobile=${val}`);
+   showList(await res.json());
+ }
+}
+
+function showList(d){
+ results.innerHTML="";
+ if(!d.slips.length){results.innerHTML="No slips found";return;}
+ d.slips.forEach(s=>{
+   results.innerHTML+=`<div class="listItem" onclick="loadSlip('${s.slipNo}')">
+   <b>${s.slipNo}</b> | Bill ${branchMap[branch.value].prefix}-${s.billNo}<br>
+   <small>Slip: ${fDate(s.createdDate)} ${new Date(s.createdDate).toLocaleTimeString()} | Delivery: ${fDate(s.deliveryDate)}</small>
+   </div>`;
+ });
+}
+
+async function loadSlip(slipNo){
+ const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&slipNo=${slipNo}`);
+ currentSlip=await res.json();
+ renderDetails(false);
+}
+
+function renderDetails(edit){
+ let html=`<div class="labelTitle">Slip Information</div>
+ <b>Slip:</b> ${currentSlip.slipNo}<br>
+ <b>Bill:</b> ${currentSlip.billPrefix}-${currentSlip.billNo}<br>
+ <b>Name:</b> ${currentSlip.name}<br>
+ <b>Mobile:</b> ${currentSlip.mobile}<br>
+ <b>Slip Date:</b> ${fDate(currentSlip.createdDate)} ${new Date(currentSlip.createdDate).toLocaleTimeString()}<br>`;
+
+ html+= edit
+ ? `<label>Delivery Date</label><input type="date" id="editDate" value="${currentSlip.deliveryDate||""}">
+    <label>Delivery Time</label><select id="editTime">${timeSlots.map(t=>`<option ${t===currentSlip.deliveryTime?"selected":""}>${t}</option>`).join("")}</select><hr>`
+ : `<b>Delivery:</b> ${fDate(currentSlip.deliveryDate)} ${currentSlip.deliveryTime||""}<hr>`;
+
+ html+=`<div class="labelTitle">Products</div>`;
+ if(edit){
+   html+=`<input id="newProd" placeholder="Add barcode"><button onclick="addProduct()">Add</button>`;
+   currentSlip.products.forEach((p,i)=>html+=`<div class="productTag">${p}<button onclick="removeProduct(${i})">✕</button></div>`);
+ } else {
+   html+=currentSlip.products.join("<br>")||"—";
+ }
+
+ function table(fields,data,type){
+   let t=`<div class="labelTitle">${type==="top"?"TOP – कुर्ती":"BOTTOM – पैंट"}</div>
+   <table class="measureTable"><tr><th>Measurement</th><th>Value</th></tr>`;
+   fields.forEach(([k,l])=>{
+     if(!edit && !data[k]) return;
+     t+=`<tr><td>${l}</td><td>${edit?`<input data-${type}="${k}" value="${data[k]||""}">`:data[k]||""}</td></tr>`;
+   });
+   return t+"</table>";
+ }
+
+ html+=table(TOP_FIELDS,currentSlip.top,"top");
+ html+=table(BOTTOM_FIELDS,currentSlip.bottom,"bottom");
+
+ html+= edit
+ ? `<div class="actionBtns"><button class="primary" onclick="saveEdit()">Save</button><button class="secondary" onclick="renderDetails(false)">Cancel</button></div>`
+ : `<div class="actionBtns"><button class="primary" onclick="renderDetails(true)">Edit</button><button class="secondary" onclick="reprint()">Reprint</button></div>`;
+
+ details.innerHTML=html;
+}
+
+function addProduct(){currentSlip.products.push(newProd.value);renderDetails(true)}
+function removeProduct(i){currentSlip.products.splice(i,1);renderDetails(true)}
+
+async function saveEdit(){
+ const top={},bottom={};
+ document.querySelectorAll("input[data-top]").forEach(i=>top[i.dataset.top]=i.value);
+ document.querySelectorAll("input[data-bottom]").forEach(i=>bottom[i.dataset.bottom]=i.value);
+
+ const body=new URLSearchParams({
+   action:"updateSlip",
+   slipNo:currentSlip.slipNo,
+   products:JSON.stringify(currentSlip.products),
+   top:JSON.stringify(top),
+   bottom:JSON.stringify(bottom),
+   deliveryDate:editDate.value,
+   deliveryTime:editTime.value
+ });
+
+ await fetch(API_URL,{method:"POST",body});
+ currentSlip.top=top; currentSlip.bottom=bottom;
+ currentSlip.deliveryDate=editDate.value; currentSlip.deliveryTime=editTime.value;
+ renderDetails(false);
+}
+
+function reprint(){
+ const b=branchMap[branch.value];
+ const w=window.open('','','width=320,height=700');
+ const row=(l,v)=>v?`<tr><td>${l}</td><td style="text-align:right">${v}</td></tr>`:"";
+
+ w.document.write(`<html><head><style>
+ body{font-family:Arial Black,Arial,sans-serif;font-weight:900;width:280px;padding:10px}
+ .shop{text-align:center;font-size:22px}
+ .divider{border-top:2px dashed #000;margin:6px 0}
+ table{width:100%;font-size:15px;border-collapse:collapse}
+ td{padding:2px 0}
+ </style></head><body>
+
+ <div class="shop">SAVRA</div>
+ <div class="divider"></div>
+ Slip: ${currentSlip.slipNo}<br>
+ Bill: ${currentSlip.billPrefix}-${currentSlip.billNo}<br>
+ Customer: ${currentSlip.name}<br>
+ Mobile: ${currentSlip.mobile}<br>
+ <div class="divider"></div>
+ <b>TOP</b><table>
+ ${TOP_FIELDS.map(([k,l])=>row(l,currentSlip.top[k])).join("")}
+ </table>
+ <b>BOTTOM</b><table>
+ ${BOTTOM_FIELDS.map(([k,l])=>row(l,currentSlip.bottom[k])).join("")}
+ </table>
+ <div class="divider"></div>
+ Delivery: ${currentSlip.deliveryDate||"-"} ${currentSlip.deliveryTime||""}
+ </body></html>`);
+ w.document.close();w.print();w.close();
+}
+</script>
+</body>
+</html>
