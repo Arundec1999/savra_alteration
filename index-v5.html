@@ -19,60 +19,15 @@ body{
   border-radius:12px;
   box-shadow:0 8px 20px rgba(0,0,0,.08);
 }
-h2{
-  margin:0 0 6px;
-  text-align:center;
-}
-.section{
-  margin-top:16px;
-  padding-top:12px;
-  border-top:1px solid #eee;
-}
-label{
-  font-size:13px;
-  font-weight:600;
-  margin-bottom:4px;
-  display:block;
-}
-input,select{
-  width:100%;
-  padding:9px;
-  border-radius:6px;
-  border:1px solid #ccc;
-  margin-bottom:10px;
-  font-size:14px;
-  box-sizing:border-box;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:6px;
-}
-th,td{
-  border:1px solid #e0e0e0;
-  padding:6px;
-  font-size:13px;
-}
-th{
-  background:#f7f7f7;
-  text-align:left;
-}
-button{
-  width:100%;
-  padding:12px;
-  font-size:15px;
-  background:#111;
-  color:white;
-  border:none;
-  border-radius:8px;
-  margin-top:14px;
-}
-.small-note{
-  font-size:12px;
-  color:#777;
-  margin-top:-6px;
-  margin-bottom:8px;
-}
+h2{margin:0 0 6px;text-align:center;}
+.section{margin-top:16px;padding-top:12px;border-top:1px solid #eee;}
+label{font-size:13px;font-weight:600;margin-bottom:4px;display:block;}
+input,select{width:100%;padding:9px;border-radius:6px;border:1px solid #ccc;margin-bottom:10px;font-size:14px;box-sizing:border-box;}
+table{width:100%;border-collapse:collapse;margin-top:6px;}
+th,td{border:1px solid #e0e0e0;padding:6px;font-size:13px;}
+th{background:#f7f7f7;text-align:left;}
+button{width:100%;padding:12px;font-size:15px;background:#111;color:white;border:none;border-radius:8px;margin-top:14px;}
+.small-note{font-size:12px;color:#777;margin-top:-6px;margin-bottom:8px;}
 </style>
 </head>
 <body>
@@ -80,9 +35,7 @@ button{
 <div class="card">
 <h2>ALTERATION SLIP</h2>
 
-<button onclick="goToSearch()" style="background:#444;margin-bottom:10px;">
-🔍 Search / Edit Slip
-</button>
+<button onclick="goToSearch()" style="background:#444;margin-bottom:10px;">🔍 Search / Edit Slip</button>
 
 <div class="section">
 <label>Branch</label>
@@ -134,41 +87,51 @@ button{
 </div>
 
 <!-- RECEIPT TEMPLATE -->
-<div id="printSlip" style="display:none;
-  font-family:'Courier New',monospace;
-  font-weight:700;
-  width:280px;
-  font-size:15px;
-  line-height:1.5;
-  color:#000;">
+<div id="printSlip" style="display:none; color:#000;">
 
-<div style="text-align:center;font-size:20px;font-weight:900;">SAVRA</div>
-<div id="pBranchAddress" style="font-size:13px;"></div>
-<div id="pBranchContact" style="font-size:13px;"></div>
-<hr>
-Slip: <span id="pSlipNo"></span><br>
-Bill: <span id="pBillNo"></span><br>
-Date: <span id="pDate"></span> <span id="pTime"></span>
-<hr>
-Customer: <span id="pName"></span><br>
-Mobile: <span id="pMobile"></span>
-<hr>
-<b>PRODUCTS</b>
+<div class="shop-name">SAVRA</div>
+<div id="pBranchAddress" class="sub-text"></div>
+<div id="pBranchContact" class="sub-text"></div>
+
+<div class="divider"></div>
+
+<div class="row"><span>Slip No / पर्ची नं.</span><span id="pSlipNo"></span></div>
+<div class="row"><span>Bill No / बिल नं.</span><span id="pBillNo"></span></div>
+<div class="row"><span>Date / दिनांक</span><span id="pDate"></span></div>
+<div class="row"><span>Time / समय</span><span id="pTime"></span></div>
+
+<div class="divider"></div>
+
+<div class="section-title">Customer / ग्राहक</div>
+<div class="row"><span>Name / नाम</span><span id="pName"></span></div>
+<div class="row"><span>Mobile / मोबाइल</span><span id="pMobile"></span></div>
+
+<div class="divider"></div>
+
+<div class="section-title">Products / कपड़े</div>
 <table id="pProducts"></table>
-<hr>
-<b>TOP</b>
+
+<div class="divider"></div>
+
+<div class="section-title">TOP Measurements / कुर्ता नाप</div>
 <table id="pTopTable"></table>
-<b>BOTTOM</b>
+
+<div class="section-title">BOTTOM Measurements / पैंट नाप</div>
 <table id="pBottomTable"></table>
-<hr>
-Delivery: <span id="pDeliveryDate"></span><br>
-Time: <span id="pDeliveryTime"></span>
+
+<div class="divider"></div>
+
+<div class="section-title">Delivery / डिलीवरी</div>
+<div class="row"><span>Date</span><span id="pDeliveryDate"></span></div>
+<div class="row"><span>Time</span><span id="pDeliveryTime"></span></div>
+
+<div class="divider"></div>
+<div class="footer">Thank You • Visit Again</div>
+
 </div>
 
 <script>
-function goToSearch(){
-  window.location.href="search.html";
-}
+function goToSearch(){window.location.href="search.html";}
 
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 let branchMap={},products=[];
@@ -192,17 +155,10 @@ window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
  const data=await res.json();
  branch.innerHTML=`<option value="">Select Branch</option>`;
- data.branches.forEach(b=>{
-  branchMap[b.name]=b;
-  branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;
- });
+ data.branches.forEach(b=>{branchMap[b.name]=b;branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;});
 };
 
-branch.onchange=billNo.oninput=()=>{
- if(branch.value&&billNo.value){
-  billPreview.innerText=branchMap[branch.value].prefix+"-"+billNo.value;
- }
-};
+branch.onchange=billNo.oninput=()=>{if(branch.value&&billNo.value){billPreview.innerText=branchMap[branch.value].prefix+"-"+billNo.value;}};
 
 mobile.addEventListener("blur",async()=>{
  if(!mobile.value)return;
@@ -212,12 +168,7 @@ mobile.addEventListener("blur",async()=>{
 });
 
 barcodeInput.addEventListener("keypress",e=>{
- if(e.key==="Enter"){
-  e.preventDefault();
-  products.push(barcodeInput.value.trim());
-  barcodeInput.value="";
-  renderProducts();
- }
+ if(e.key==="Enter"){e.preventDefault();products.push(barcodeInput.value.trim());barcodeInput.value="";renderProducts();}
 });
 function renderProducts(){
  productTable.innerHTML="<tr><th>Barcode</th><th>Remove</th></tr>";
@@ -267,11 +218,23 @@ async function saveSlip(){
   pBranchContact.innerText="Contact: "+b.contact;
 
   pProducts.innerHTML=products.map(p=>`<tr><td>${p}</td></tr>`).join("");
-  pTopTable.innerHTML=Object.entries(topData).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
-  pBottomTable.innerHTML=Object.entries(bottomData).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+  pTopTable.innerHTML=Object.entries(topData).map(([k,v])=>`<tr><td>${k}</td><td style="text-align:right">${v}</td></tr>`).join("");
+  pBottomTable.innerHTML=Object.entries(bottomData).map(([k,v])=>`<tr><td>${k}</td><td style="text-align:right">${v}</td></tr>`).join("");
 
   const w=window.open('','','width=320,height=700');
-  w.document.write(`<html><body style="font-family:Arial Black, Arial, sans-serif;font-weight:900;font-size:20px;width:280px;padding:10px;">${printSlip.innerHTML}</body></html>`);
+  w.document.write(`
+  <html><head>
+  <style>
+  body{font-family:Arial Black,Arial,sans-serif;font-weight:900;width:280px;padding:10px;color:#000;}
+  .shop-name{text-align:center;font-size:22px;margin-bottom:4px;}
+  .sub-text{text-align:center;font-size:14px;}
+  .section-title{font-size:16px;margin-top:8px;}
+  .row{display:flex;justify-content:space-between;font-size:15px;}
+  .divider{border-top:2px dashed #000;margin:6px 0;}
+  table{width:100%;border-collapse:collapse;font-size:15px;}
+  td{padding:2px 0;}
+  .footer{text-align:center;font-size:14px;margin-top:6px;}
+  </style></head><body>${printSlip.innerHTML}</body></html>`);
   w.document.close();w.print();w.close();
  }
 }
