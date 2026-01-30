@@ -97,11 +97,9 @@ const BOTTOM_FIELDS=[
 ["bottom_knee","Knee (घुटना)"],["bottom_bottom","Bottom (पायंचा)"]
 ];
 
-/* FORMAT HELPERS */
 function fDate(d){if(!d)return"-";let x=new Date(d);return x.toLocaleDateString('en-GB');}
 function fTime(d){if(!d)return"";let x=new Date("1970-01-01T"+d);return x.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
 
-/* LOAD BRANCHES — SAME LOGIC */
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
  const data=await res.json();
@@ -187,7 +185,6 @@ function renderDetails(edit){
  details.innerHTML=html;
 }
 
-/* REMAINING JS LOGIC UNCHANGED */
 function addProduct(){currentSlip.products.push(newProd.value);renderDetails(true)}
 function removeProduct(i){currentSlip.products.splice(i,1);renderDetails(true)}
 
@@ -212,8 +209,37 @@ async function saveEdit(){
  renderDetails(false);
 }
 
-/* PRINT FUNCTION KEPT SAME */
-function reprint(){ /* unchanged */ }
+function reprint(){
+ const b=branchMap[branch.value];
+ const w=window.open('','','width=320,height=700');
+ const row=(l,v)=>v?`<tr><td>${l}</td><td style="text-align:right">${v}</td></tr>`:"";
+
+ w.document.write(`<html><head><style>
+ body{font-family:Arial Black,Arial,sans-serif;font-weight:900;width:280px;padding:10px}
+ .shop{text-align:center;font-size:22px}
+ .divider{border-top:2px dashed #000;margin:6px 0}
+ table{width:100%;font-size:15px;border-collapse:collapse}
+ td{padding:2px 0}
+ </style></head><body>
+
+ <div class="shop">SAVRA</div>
+ <div class="divider"></div>
+ Slip: ${currentSlip.slipNo}<br>
+ Bill: ${currentSlip.billPrefix}-${currentSlip.billNo}<br>
+ Customer: ${currentSlip.name}<br>
+ Mobile: ${currentSlip.mobile}<br>
+ <div class="divider"></div>
+ <b>TOP</b><table>
+ ${TOP_FIELDS.map(([k,l])=>row(l,currentSlip.top[k])).join("")}
+ </table>
+ <b>BOTTOM</b><table>
+ ${BOTTOM_FIELDS.map(([k,l])=>row(l,currentSlip.bottom[k])).join("")}
+ </table>
+ <div class="divider"></div>
+ Delivery: ${currentSlip.deliveryDate||"-"} ${currentSlip.deliveryTime||""}
+ </body></html>`);
+ w.document.close();w.print();w.close();
+}
 </script>
 </body>
 </html>
