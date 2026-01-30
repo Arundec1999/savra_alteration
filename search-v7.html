@@ -166,10 +166,10 @@ button.secondary{background:#666;color:#fff}
 <select id="branch"></select>
 
 <label>Search By</label>
-<select id="searchType">
+<select id="searchType" onchange="clearResults()">
+  <option value="mobile" selected>Mobile</option>
   <option value="slip">Slip Number</option>
   <option value="bill">Bill Number</option>
-  <option value="mobile">Mobile</option>
 </select>
 
 <input id="searchValue" placeholder="Enter number">
@@ -205,7 +205,6 @@ const BOTTOM_FIELDS=[
 ];
 
 function fDate(d){if(!d)return"-";let x=new Date(d);return x.toLocaleDateString('en-GB');}
-function fTime(d){if(!d)return"";let x=new Date("1970-01-01T"+d);return x.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
 
 window.onload=async()=>{
  const res=await fetch(API_URL+"?action=getBranches");
@@ -213,6 +212,11 @@ window.onload=async()=>{
  branch.innerHTML="<option value=''>Select Branch</option>";
  data.branches.forEach(b=>{branchMap[b.name]=b;branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;});
 };
+
+function clearResults(){
+  results.innerHTML="";
+  details.innerHTML="No slip loaded";
+}
 
 async function searchSlip(){
  if(!branch.value)return alert("Select branch");
@@ -240,7 +244,11 @@ function showList(d){
  d.slips.forEach(s=>{
    results.innerHTML+=`<div class="listItem" onclick="loadSlip('${s.slipNo}')">
    <b>${s.slipNo}</b> | Bill ${branchMap[branch.value].prefix}-${s.billNo}<br>
-   <small>Slip: ${fDate(s.createdDate)} ${new Date(s.createdDate).toLocaleTimeString()} | Delivery: ${fDate(s.deliveryDate)}</small>
+   <small>
+   Slip: ${fDate(s.createdDate)} ${new Date(s.createdDate).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
+   <br>
+   Delivery: ${fDate(s.deliveryDate)} ${s.deliveryTime||""}
+   </small>
    </div>`;
  });
 }
@@ -317,7 +325,6 @@ async function saveEdit(){
 }
 
 function reprint(){
- const b=branchMap[branch.value];
  const w=window.open('','','width=320,height=700');
  const row=(l,v)=>v?`<tr><td>${l}</td><td style="text-align:right">${v}</td></tr>`:"";
 
