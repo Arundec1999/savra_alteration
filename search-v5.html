@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Search & Edit Slip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{font-family:'Segoe UI',Arial;background:#f2f3f7;padding:12px}
+.card{max-width:760px;margin:auto;background:#fff;padding:18px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.08)}
+h2{text-align:center;margin-bottom:12px}
+
+.section{margin-top:18px;padding-top:14px;border-top:1px solid #eee}
+
+input,select,button{
+  width:100%;padding:9px;border-radius:6px;border:1px solid #ccc;margin:6px 0;font-size:14px
+}
+button{background:#111;color:#fff;border:none}
+button.secondary{background:#666}
+
+.toggleGroup{display:flex;gap:6px;margin-bottom:8px}
+.toggleGroup button{flex:1;background:#ddd;color:#000}
+.toggleGroup button.active{background:#111;color:#fff}
+
+.listItem{
+  padding:10px;border:1px solid #e5e5e5;border-radius:6px;
+  margin-bottom:6px;background:#fafafa;cursor:pointer
+}
+
+.measureTable{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}
+.measureTable th:nth-child(1), .measureTable td:nth-child(1){width:65%}
+.measureTable th:nth-child(2), .measureTable td:nth-child(2){width:35%;text-align:right}
+.measureTable td,.measureTable th{border:1px solid #e0e0e0;padding:6px;font-size:13px}
+.measureTable th{background:#f7f7f7;text-align:left}
+
+.actionBtns{display:flex;gap:10px;margin-top:14px}
+.actionBtns button{flex:1}
+
+.readonlyBox{background:#fafafa;padding:12px;border-radius:8px}
+
+.productTag{
+  display:flex;justify-content:space-between;align-items:center;
+  background:#f1f1f1;padding:6px 10px;border-radius:20px;margin-bottom:6px;font-size:13px
+}
+.productTag button{
+  width:auto;padding:2px 8px;border-radius:12px;background:#c62828;font-size:12px
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>Search Alteration Slip</h2>
+
+<div class="section">
+<label>Branch</label>
+<select id="branch"></select>
+
+<label>Search By</label>
+<div class="toggleGroup">
+  <button id="btnMobile" class="active" onclick="setSearch('mobile')">Mobile</button>
+  <button id="btnSlip" onclick="setSearch('slip')">Slip No</button>
+  <button id="btnBill" onclick="setSearch('bill')">Bill No</button>
+</div>
+
+<input id="searchValue" placeholder="Enter Mobile Number">
+<button onclick="searchSlip()">Search</button>
+
+<div id="results"></div>
+</div>
+
+<div class="section">
+<h3>Slip Details</h3>
+<div id="details" class="readonlyBox">No slip loaded</div>
+</div>
+</div>
+
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
+let branchMap={}, currentSlip=null, searchMode="mobile";
+
+const TOP_FIELDS=[
+["top_length","Length (लंबाई)"],["top_chest","Chest (छाती)"],
+["top_waist","Waist (कमर)"],["top_hip","Hip (कूल्हा)"],
+["top_shoulder","Shoulder (कंधा)"],["top_sleeve_length","Sleeve Length (आस्तीन लंबाई)"],
+["top_sleeve_round","Sleeve Round (आस्तीन घेरा)"],["top_armhole","Armhole (आर्म होल)"],
+["top_neck_front","Neck Depth Front (गला आगे)"],["top_neck_back","Neck Depth Back (गला पीछे)"]
+];
+
+const BOTTOM_FIELDS=[
+["bottom_length","Length (लंबाई)"],["bottom_waist","Waist (कमर)"],
+["bottom_hip","Hip (कूल्हा)"],["bottom_thigh","Thigh (जांघ)"],
+["bottom_knee","Knee (घुटना)"],["bottom_bottom","Bottom (पायंचा)"]
+];
+
+function formatDate(d){
+  const dt=new Date(d);
+  return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'2-digit'});
+}
+function formatTime(d){
+  const dt=new Date(d);
+  return dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+
+window.onload=async()=>{
+ const res=await fetch(API_URL+"?action=getBranches");
+ const data=await res.json();
+ branch.innerHTML="<option value=''>Select Branch</option>";
+ data.branches.forEach(b=>branchMap[b.name]=b);
+};
+
+function setSearch(type){
+ searchMode=type;
+ document.querySelectorAll(".toggleGroup button").forEach(b=>b.classList.remove("active"));
+ document.getElementById("btn"+type.charAt(0).toUpperCase()+type.slice(1)).classList.add("active");
+ searchValue.placeholder= type==="mobile"?"Enter Mobile Number": type==="bill"?"Enter Bill Number":"Enter Slip Number";
+}
+
+async function searchSlip(){
+ if(!branch.value)return alert("Select branch");
+ const val=searchValue.value.trim();
+ if(!val)return;
+
+ if(searchMode==="slip"){
+   const slip=`ALT-${branchMap[branch.value].prefix}-${String(val).padStart(6,'0')}`;
+   loadSlip(slip);
+ }
+ if(searchMode==="bill"){
+   const res=await fetch(`${API_URL}?action=getSlipsByBill&branch=${branch.value}&prefix=${branchMap[branch.value].prefix}&billNo=${val}`);
+   showList(await res.json());
+ }
+ if(searchMode==="mobile"){
+   const res=await fetch(`${API_URL}?action=getSlipsByMobile&branch=${branch.value}&mobile=${val}`);
+   showList(await res.json());
+ }
+}
+
+function showList(d){
+ results.innerHTML="";
+ if(!d.slips.length){results.innerHTML="No slips found";return;}
+ d.slips.forEach(s=>{
+   results.innerHTML+=`<div class="listItem" onclick="loadSlip('${s.slipNo}')">
+   <b>${s.slipNo}</b> | Bill: ${branchMap[branch.value].prefix}-${s.billNo}<br>
+   <small>Slip: ${formatDate(s.createdDate)} ${formatTime(s.createdDate)} | Delivery: ${s.deliveryDate?formatDate(s.deliveryDate):"-"}</small>
+   </div>`;
+ });
+}
+
+async function loadSlip(slipNo){
+ const res=await fetch(`${API_URL}?action=searchSlip&branch=${branch.value}&slipNo=${slipNo}`);
+ currentSlip=await res.json();
+ renderDetails(false);
+}
+
+function renderDetails(edit){
+ let html=`<b>Slip:</b> ${currentSlip.slipNo}<br>
+ <b>Bill:</b> ${currentSlip.billPrefix}-${currentSlip.billNo}<br>
+ <b>Name:</b> ${currentSlip.name}<br>
+ <b>Mobile:</b> ${currentSlip.mobile}<br>
+ <b>Slip Date:</b> ${formatDate(currentSlip.createdDate)} ${formatTime(currentSlip.createdDate)}<br>`;
+
+ html+= edit
+ ? `<label>Delivery Date</label><input type="date" id="editDate" value="${currentSlip.deliveryDate||""}">
+    <label>Delivery Time</label><input type="time" id="editTime" value="${currentSlip.deliveryTime||""}"><hr>`
+ : `<b>Delivery:</b> ${currentSlip.deliveryDate?formatDate(currentSlip.deliveryDate):"-"} ${currentSlip.deliveryTime||""}<hr>`;
+
+ /* PRODUCTS */
+ html+=`<b>Products</b><br>`;
+ if(edit){
+   html+=`<input id="newProd" placeholder="Add barcode"><button onclick="addProduct()">Add</button><div id="prodList">`;
+   currentSlip.products.forEach((p,i)=>html+=`<div class="productTag">${p}<button onclick="removeProduct(${i})">✕</button></div>`);
+   html+="</div>";
+ } else {
+   html+=currentSlip.products.join("<br>")||"—";
+ }
+
+ function table(fields,data,type){
+   let t=`<table class="measureTable"><tr><th>Measurement</th><th>Value</th></tr>`;
+   fields.forEach(([k,l])=>{
+     if(!edit && !data[k]) return;
+     t+=`<tr><td>${l}</td><td>${edit?`<input data-${type}="${k}" value="${data[k]||""}">`:data[k]||""}</td></tr>`;
+   });
+   return t+"</table>";
+ }
+
+ html+=`<hr><b>TOP – कुर्ती</b>`+table(TOP_FIELDS,currentSlip.top,"top");
+ html+=`<b>BOTTOM – पैंट</b>`+table(BOTTOM_FIELDS,currentSlip.bottom,"bottom");
+
+ html+= edit
+ ? `<div class="actionBtns"><button onclick="saveEdit()">Save</button><button class="secondary" onclick="renderDetails(false)">Cancel</button></div>`
+ : `<div class="actionBtns"><button onclick="renderDetails(true)">Edit</button><button class="secondary" onclick="reprint()">Reprint</button></div>`;
+
+ details.innerHTML=html;
+}
+
+function addProduct(){currentSlip.products.push(newProd.value);renderDetails(true)}
+function removeProduct(i){currentSlip.products.splice(i,1);renderDetails(true)}
+</script>
+</body>
+</html>
