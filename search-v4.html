@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Search & Edit Slip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{font-family:'Segoe UI',Arial;background:#f2f3f7;padding:12px}
+.card{max-width:720px;margin:auto;background:#fff;padding:18px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.08)}
+h2{text-align:center;margin-bottom:12px}
+.section{margin-top:18px;padding-top:14px;border-top:1px solid #eee}
+input,select,button{width:100%;padding:9px;border-radius:6px;border:1px solid #ccc;margin:6px 0;font-size:14px}
+button{background:#111;color:#fff;border:none}
+button.secondary{background:#666}
+.listItem{padding:8px;border-bottom:1px solid #eee;cursor:pointer}
+.measureTable{width:100%;border-collapse:collapse;margin-top:6px}
+.measureTable td,.measureTable th{border:1px solid #e0e0e0;padding:6px;font-size:13px}
+.measureTable th{background:#f7f7f7;text-align:left}
+.actionBtns{display:flex;gap:10px;margin-top:14px}
+.actionBtns button{flex:1}
+.readonlyBox{background:#fafafa;padding:12px;border-radius:8px}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>Search Alteration Slip</h2>
+
+<div class="section">
+<label>Branch</label>
+<select id="branch"></select>
+
+<label>Search By</label>
+<select id="searchType">
+  <option value="slip">Slip Number</option>
+  <option value="bill">Bill Number</option>
+  <option value="mobile">Mobile</option>
+</select>
+
+<input id="searchValue" placeholder="Enter number">
+<button onclick="searchSlip()">Search</button>
+
+<div id="results"></div>
+</div>
+
+<div class="section">
+<h3>Slip Details</h3>
+<div id="details" class="readonlyBox">No slip loaded</div>
+</div>
+</div>
+
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
+let branchMap={}, currentSlip=null;
+
+const timeSlots=["11:00 AM","12:00 PM","01:00 PM","02:00 PM","03:00 PM","04:00 PM","05:00 PM","06:00 PM","07:00 PM","08:00 PM","09:00 PM"];
+
+/* MATCHED TO MAIN PAGE */
+const TOP_FIELDS=[
+["top_length","Length (लंबाई)"],
+["top_chest","Chest (छाती)"],
+["top_waist","Waist (कमर)"],
+["top_hip","Hip (कूल्हा)"],
+["top_shoulder","Shoulder (कंधा)"],
+["top_sleeve_length","Sleeve Length (आस्तीन लंबाई)"],
+["top_sleeve_round","Sleeve Round (आस्तीन घेरा)"],
+["top_armhole","Armhole (आर्म होल)"],
+["top_neck_front","Neck Depth Front (गला आगे)"],
+["top_neck_back","Neck Depth Back (गला पीछे)"]
+];
+
+const BOTTOM_FIELDS=[
+["bottom_length","Length (लंबाई)"],
+["bottom_waist","Waist (कमर)"],
+["bottom_hip","Hip (कूल्हा)"],
+["bottom_thigh","Thigh (जांघ)"],
+["bottom_knee","Knee (घुटना)"],
+["bottom_bottom","Bottom (पायंचा)"]
+];
+
+window.onload=async()=>{
+ const res=await fetch(API_URL+"?action=getBranches");
+ const data=await res.json();
+ branch.innerHTML="<option value=''>Select Branch</option>";
+ data.branches.forEach(b=>{
+   branchMap[b.name]=b;
+   branch.innerHTML+=`<option value="${b.name}">${b.name}</option>`;
+ });
+};
+
+async function searchSlip(){
+ if(!branch.value)return alert("Select branch");
+ const type=searchType.value;
+ const val=searchValue.value.trim();
+ if(!val)return;
+
+ if(type==="slip"){
+   const slip=`ALT-${branchMap[branch.value].prefix}-${String(val).padStart(6,'0')}`;
+   loadSlip(slip);
+ }
+ if(type==="bill"){
+   const res=await fetch(API_URL+`?action=getSlipsByBill&branch=${branch.value}&prefix=${branchMap[branch.value].prefix}&billNo=${val}`);
+   showList(await res.json());
+ }
+ if(type==="mobile"){
+   const res=await fetch(API_URL+`?action=getSlipsByMobile&branch=${branch.value}&mobile=${val}`);
+   showList(await res.json());
+ }
+}
+
+function showList(d){
+ results.innerHTML="";
+ if(!d.slips.length){results.innerHTML="No slips found";return;}
+ d.slips.forEach(s=>{
+   results.innerHTML+=`<div class="listItem" onclick="loadSlip('${s.slipNo}')">${s.slipNo} | Bill ${s.billNo}</div>`;
+ });
+}
+
+async function loadSlip(slipNo){
+ const res=await fetch(API_URL+`?action=searchSlip&branch=${branch.value}&slipNo=${slipNo}`);
+ const d=await res.json();
+ if(d.status!=="success")return alert("Not found");
+ currentSlip=d;
+ renderDetails(false);
+}
+
+function renderDetails(edit){
+ if(!currentSlip)return;
+
+ let html=`<b>Slip:</b> ${currentSlip.slipNo}<br>
+ <b>Bill:</b> ${currentSlip.billPrefix}-${currentSlip.billNo}<br>
+ <b>Name:</b> ${currentSlip.name}<br>
+ <b>Mobile:</b> ${currentSlip.mobile}<br>`;
+
+ if(edit){
+   html+=`<label>Delivery Date</label><input type="date" id="editDate" value="${currentSlip.deliveryDate||""}">
+   <label>Delivery Time</label>
+   <select id="editTime">${timeSlots.map(t=>`<option ${t===currentSlip.deliveryTime?"selected":""}>${t}</option>`).join("")}</select><hr>`;
+ } else {
+   html+=`<b>Delivery:</b> ${currentSlip.deliveryDate||"-"} ${currentSlip.deliveryTime||""}<hr>`;
+ }
+
+ html+=`<b>TOP – कुर्ती</b><table class="measureTable"><tr><th>Measurement</th><th>Value</th></tr>`;
+ TOP_FIELDS.forEach(([k,l])=>{
+   html+=`<tr><td>${l}</td><td>${edit?`<input data-key="${k}" value="${currentSlip.top[k]||""}">`:currentSlip.top[k]||""}</td></tr>`;
+ });
+ html+="</table>";
+
+ html+=`<b>BOTTOM – पैंट</b><table class="measureTable"><tr><th>Measurement</th><th>Value</th></tr>`;
+ BOTTOM_FIELDS.forEach(([k,l])=>{
+   html+=`<tr><td>${l}</td><td>${edit?`<input data-key="${k}" value="${currentSlip.bottom[k]||""}">`:currentSlip.bottom[k]||""}</td></tr>`;
+ });
+ html+="</table>";
+
+ if(edit){
+   html+=`<div class="actionBtns">
+   <button onclick="saveEdit()">Save Changes</button>
+   <button class="secondary" onclick="renderDetails(false)">Cancel</button>
+   </div>`;
+ } else {
+   html+=`<div class="actionBtns">
+   <button onclick="renderDetails(true)">Edit Slip</button>
+   <button class="secondary" onclick="reprint()">Reprint</button>
+   </div>`;
+ }
+
+ details.innerHTML=html;
+}
+
+async function saveEdit(){
+ const top={}, bottom={};
+ document.querySelectorAll("input[data-key]").forEach(i=>{
+   if(i.dataset.key.startsWith("top_")) top[i.dataset.key]=i.value;
+   else bottom[i.dataset.key]=i.value;
+ });
+
+ const body=new URLSearchParams({
+   action:"updateSlip",
+   slipNo:currentSlip.slipNo,
+   top:JSON.stringify(top),
+   bottom:JSON.stringify(bottom),
+   deliveryDate:editDate.value,
+   deliveryTime:editTime.value
+ });
+
+ const res=await fetch(API_URL,{method:"POST",body});
+ const d=await res.json();
+ if(d.status==="success"){
+   alert("Slip updated");
+   currentSlip.top=top;
+   currentSlip.bottom=bottom;
+   currentSlip.deliveryDate=editDate.value;
+   currentSlip.deliveryTime=editTime.value;
+   renderDetails(false);
+ }
+}
+
+/* EXACT SAME PRINT STYLE AS MAIN PAGE */
+function reprint(){
+ const b=branchMap[branch.value];
+
+ const w=window.open('','','width=320,height=700');
+ w.document.write(`
+ <html><head>
+ <style>
+ body{font-family:Arial Black,Arial,sans-serif;font-weight:900;width:280px;padding:10px;color:#000;}
+ .shop-name{text-align:center;font-size:22px;margin-bottom:4px;}
+ .sub-text{text-align:center;font-size:14px;}
+ .section-title{font-size:16px;margin-top:8px;}
+ .row{display:flex;justify-content:space-between;font-size:15px;}
+ .divider{border-top:2px dashed #000;margin:6px 0;}
+ table{width:100%;border-collapse:collapse;font-size:15px;}
+ td{padding:2px 0;}
+ .footer{text-align:center;font-size:14px;margin-top:6px;}
+ </style></head><body>
+
+ <div class="shop-name">SAVRA</div>
+ <div class="sub-text">${b.address||""}</div>
+ <div class="sub-text">${b.contact||""}</div>
+ <div class="divider"></div>
+
+ <div class="row"><span>Slip No</span><span>${currentSlip.slipNo}</span></div>
+ <div class="row"><span>Bill No</span><span>${currentSlip.billPrefix}-${currentSlip.billNo}</span></div>
+ <div class="row"><span>Date</span><span>${new Date().toLocaleDateString()}</span></div>
+ <div class="row"><span>Time</span><span>${new Date().toLocaleTimeString()}</span></div>
+
+ <div class="divider"></div>
+ <div class="section-title">Customer</div>
+ <div class="row"><span>Name</span><span>${currentSlip.name}</span></div>
+ <div class="row"><span>Mobile</span><span>${currentSlip.mobile}</span></div>
+
+ <div class="divider"></div>
+ <div class="section-title">TOP</div>
+ <table>${Object.entries(currentSlip.top).map(([k,v])=>`<tr><td>${TOP_FIELDS.find(f=>f[0]==k)?.[1]||k}</td><td style="text-align:right">${v}</td></tr>`).join("")}</table>
+
+ <div class="section-title">BOTTOM</div>
+ <table>${Object.entries(currentSlip.bottom).map(([k,v])=>`<tr><td>${BOTTOM_FIELDS.find(f=>f[0]==k)?.[1]||k}</td><td style="text-align:right">${v}</td></tr>`).join("")}</table>
+
+ <div class="divider"></div>
+ <div class="section-title">Delivery</div>
+ <div class="row"><span>Date</span><span>${currentSlip.deliveryDate||"-"}</span></div>
+ <div class="row"><span>Time</span><span>${currentSlip.deliveryTime||"-"}</span></div>
+
+ <div class="divider"></div>
+ <div class="footer">Thank You • Visit Again</div>
+
+ </body></html>
+ `);
+ w.document.close();w.print();w.close();
+}
+</script>
+</body>
+</html>
