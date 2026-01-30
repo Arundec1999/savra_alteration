@@ -136,14 +136,40 @@ function goToSearch(){window.location.href="search.html";}
 const API_URL="https://script.google.com/macros/s/AKfycbzr6yQtzBSKwuQtfAYme9vF-5rjYij3P8LM0woZYWxTfX7CycWrAJYc2gYphAKxP2JvQw/exec";
 let branchMap={},products=[];
 
-const TOP_FIELDS=["Length","Chest","Waist","Hip","Shoulder","Sleeve Length","Sleeve Round","Armhole","Neck Depth Front","Neck Depth Back"];
-const BOTTOM_FIELDS=["Length","Waist","Hip","Thigh","Knee","Bottom"];
+const TOP_FIELDS = [
+["Length","लंबाई"],
+["Chest","छाती"],
+["Waist","कमर"],
+["Hip","कूल्हा"],
+["Shoulder","कंधा"],
+["Sleeve Length","आस्तीन लंबाई"],
+["Sleeve Round","आस्तीन घेरा"],
+["Armhole","आर्म होल"],
+["Neck Depth Front","गला आगे"],
+["Neck Depth Back","गला पीछे"]
+];
+
+const BOTTOM_FIELDS = [
+["Length","लंबाई"],
+["Waist","कमर"],
+["Hip","कूल्हा"],
+["Thigh","जांघ"],
+["Knee","घुटना"],
+["Bottom","पायंचा"]
+];
+
 
 function buildTable(id,fields){
  let html="<tr><th>Measurement</th><th>Value</th></tr>";
- fields.forEach(f=>html+=`<tr data-key="${f}"><td>${f}</td><td><input></td></tr>`);
+ fields.forEach(f=>{
+   html+=`<tr data-key="${f[0]}">
+            <td>${f[0]} (${f[1]})</td>
+            <td><input></td>
+          </tr>`;
+ });
  document.getElementById(id).innerHTML=html;
 }
+
 buildTable("topTable",TOP_FIELDS);
 buildTable("bottomTable",BOTTOM_FIELDS);
 
@@ -218,8 +244,18 @@ async function saveSlip(){
   pBranchContact.innerText="Contact: "+b.contact;
 
   pProducts.innerHTML=products.map(p=>`<tr><td>${p}</td></tr>`).join("");
-  pTopTable.innerHTML=Object.entries(topData).map(([k,v])=>`<tr><td>${k}</td><td style="text-align:right">${v}</td></tr>`).join("");
-  pBottomTable.innerHTML=Object.entries(bottomData).map(([k,v])=>`<tr><td>${k}</td><td style="text-align:right">${v}</td></tr>`).join("");
+  pTopTable.innerHTML=Object.entries(topData)
+    .map(([k,v])=>{
+      const f=TOP_FIELDS.find(x=>x[0]===k);
+      return `<tr><td>${f?f[0]+" ("+f[1]+")":k}</td><td style="text-align:right">${v}</td></tr>`;
+    }).join("");
+
+  pBottomTable.innerHTML=Object.entries(bottomData)
+    .map(([k,v])=>{
+      const f=BOTTOM_FIELDS.find(x=>x[0]===k);
+      return `<tr><td>${f?f[0]+" ("+f[1]+")":k}</td><td style="text-align:right">${v}</td></tr>`;
+    }).join("");
+
 
   const w=window.open('','','width=320,height=700');
   w.document.write(`
